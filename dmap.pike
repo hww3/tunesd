@@ -359,7 +359,7 @@ string encode_dmap(array data)
       break;
     case T_LIST:
        mixed element;
-       final_data = ({  });
+       val = ({  });
        if(!arrayp(data[1]))
          throw(Error.Generic("Cannot encode non-arrays as lists.\n"));
        foreach(data[1];; array v)
@@ -387,7 +387,8 @@ array low_decode_dmap(string data)
   mixed final_data;
 
   [tag, length, data] = array_sscanf(data, "%4c%4d%s");
-  if(length && sizeof(string) > length)
+  
+  if(length && sizeof(data) > length)
     [block, data] = array_sscanf(data, "%" + length + "s%s");
   else
     block = data;
@@ -397,7 +398,6 @@ array low_decode_dmap(string data)
 
   dtype = t["type"];
 
-  int length;
   switch(dtype)
   {
     case T_BYTE:
@@ -429,7 +429,7 @@ array low_decode_dmap(string data)
        {
          [element, block] = low_decode_dmap(block);
          final_data += ({ element });
-       } while(sizeof(block >= 8);     
+       } while(sizeof(block) >= 8);     
       break;
     default:
       throw(Error.Generic("unknown datatype flag " + dtype +".\n"));
@@ -441,5 +441,5 @@ array low_decode_dmap(string data)
 
 int parse_int(string data, int len)
 {  
-   return parse_int(data, "%" + len + "d")[0];
+   return array_sscanf(data, "%" + len + "d")[0];
 }

@@ -2,8 +2,9 @@ inherit "dmap";
 
 mapping sessions = ([]);
 int revision_num = 1;
-object db = "db"();
+object db = ((program)"db")();
 
+object port;
 int default_port = 3689;
 Protocols.DNS_SD.Service bonjour;
 
@@ -18,14 +19,14 @@ int main(int argc, array(string) argv) {
   bonjour = Protocols.DNS_SD.Service("tunesd",
                      "_daap._tcp", "", (int)my_port);
 
-  logger->info("Advertising this application via Bonjour.");
+  write("Advertising this application via Bonjour.");
 
   return -1; 
 }
 
 void handle_request(Protocols.HTTP.Server.Request request)
 {
-  array response;
+  array|mapping response;
 
   switch(request->not_query)
   {
@@ -51,18 +52,45 @@ void handle_request(Protocols.HTTP.Server.Request request)
   request->response_and_finish(create_response(response, 200));
 }
 
-array handle_sub_request(object request)
+array|mapping handle_sub_request(object request)
 {
+    string dbid, plid, songid;
     // need to handle the following:
     // /databases/<dbid>/items
     // /databases/<dbid>/containers
     // /databases/<dbid>/containers/<plid>/items
     // /databases/<dbid>/items/<songid>.mp3
+
+    if(sscanf(request->not_query, "/databases/%s/items/%s.mp3", dbid, songid) == 2)
+    {
+      
+    }
+    else if(sscanf(request->not_query, "/databases/%s/items", dbid) == 1)
+    {
+      return create_items(request);
+    }
+    else if(sscanf(request->not_query, "/databases/%s/containers/%s/items", dbid, plid) == 2)
+    {
+      
+    }
+    else if(sscanf(request->not_query, "/databases/%s/containers", dbid))
+    {
+      
+    }
+    else
+    {
+      werror("yikes! a request we don't understand: %O\n", request);
+      return (["error": 500, "data": "we don't know how to handle " + request->not_query + "!"]);
+    }
+    
 }
 
-mapping create_response(array data, int code)
+mapping create_response(array|mapping data, int code)
 {
-  return (["server": "tunesd/0.1", "type": "application/x-dmap-tagged", "error": code, "data": encode_dmap(data)]);
+  if(mappingp(data)) 
+    return data;
+  else
+    return (["server": "tunesd/0.1", "type": "application/x-dmap-tagged", "error": code, "data": encode_dmap(data)]);
 }
 
 //! 
@@ -142,7 +170,7 @@ array create_server_info(object id)
 //!
 array create_login(object id)
 {
-  session_id = (int)Crypto.Random.random(1<<31);
+  int session_id = (int)Crypto.Random.random(1<<31);
 
   sessions[session_id] = ([]);
 
@@ -170,11 +198,11 @@ array make_content_tag_codes_array()
 {
   array codes = ({});
 
-  foreach(content_types;;ce)
+  foreach(content_types;;mapping ce)
   {
         codes += ({ ({"dmap.dictionary",
            ({
-             ({"dmap.contentcodesname", ce["name"}),
+             ({"dmap.contentcodesname", ce["name"]}),
              ({"dmap.contentcodesnumber", ce["code"] }),
              ({"dmap.contentcodestype", ce["type"]}),
            })
@@ -201,8 +229,9 @@ int get_song_count()
 {  
   return db->get_song_count();
 }
-generate_song_list
-(
+
+array generate_song_list()
+{
   array songs = db->get_songs();
   array list = allocate(db->get_song_count());
   foreach(songs;int i; mapping song)
