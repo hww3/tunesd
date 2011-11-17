@@ -15,7 +15,7 @@ int get_id()
 
 int get_playlist_count()
 {
-  return 2;
+  return 0;
 }
 
 int get_song_count()
@@ -29,4 +29,9 @@ array get_songs()
   for(int i = 0 ; i < sizeof(x); i++)
     x[i] = (["name": "song " + i, "id": i, "length": i*5]);
   return x;
+}
+
+array get_playlists()
+{
+  return ({});
 }

@@ -1,7 +1,7 @@
 inherit "dmap";
 
 mapping sessions = ([]);
-int revision_num = 1;
+int revision_num = time();
 object db = ((program)"db")();
 
 object port;
@@ -28,6 +28,14 @@ void handle_request(Protocols.HTTP.Server.Request request)
 {
   array|mapping response;
 
+  if(has_prefix(request->not_query, "daap://"))
+  {
+    object uri = Standards.URI(request->not_query);
+    request->not_query=uri->path;
+    request->query = uri->get_http_query();
+  }
+
+werror("request: %O\n", request);
   switch(request->not_query)
   {
      case "/server-info":
@@ -39,6 +47,9 @@ void handle_request(Protocols.HTTP.Server.Request request)
      case "/login":
        response = create_login(request);
        break;
+       case "/logout":
+         response = create_logout(request);
+         break;
      case "/update":
        response = create_update(request);
        break;
@@ -49,6 +60,7 @@ void handle_request(Protocols.HTTP.Server.Request request)
        response = handle_sub_request(request);
   }
   
+  //werror("response: %O\n", create_response(response, 200));
   request->response_and_finish(create_response(response, 200));
 }
 
@@ -73,9 +85,9 @@ array|mapping handle_sub_request(object request)
     {
       
     }
-    else if(sscanf(request->not_query, "/databases/%s/containers", dbid))
+    else if(sscanf(request->not_query, "/databases/%s/containers", dbid) == 1)
     {
-      
+      return create_containers(request);      
     }
     else
     {
@@ -97,7 +109,7 @@ mapping create_response(array|mapping data, int code)
 array create_items(object id)
 {
   return 
-  ({ "apso",
+  ({ "daap.databasesongs",
      ({
         ({"dmap.status", 200}),
         ({"dmap.updatetype", 0}),
@@ -111,20 +123,39 @@ array create_items(object id)
 
 }
 
+//! 
+array create_containers(object id)
+{
+  return 
+  ({  "daap.databaseplaylists",
+     ({
+        ({"dmap.status", 200}),
+        ({"dmap.updatetype", 0}),
+        ({"dmap.specifiedtotalcount", get_playlist_count()}),
+        ({"dmap.returnedcount", get_playlist_count()}),
+        ({"dmap.listing", 
+              generate_playlist_list()
+        }),
+     })
+  });
+
+}
+
 //!
 array create_databases(object id)
 {
   return 
-  ({ "avdb", 
+  ({ "daap.serverdatabases", 
      ({
         ({"dmap.status", 200}),
         ({"dmap.updatetype", 0}),
         ({"dmap.specifiedtotalcount", 1}),
         ({"dmap.returnedcount", 1}),
         ({"dmap.listing", 
-            ({
+            ({ ({
                "dmap.listingitem",
                get_db_info()
+               })
             })
          })
      })
@@ -137,8 +168,8 @@ array create_update(object id)
   return 
   ({"dmap.updateresponse",
      ({
-        ({"dmap.serverrevision", revision_num}),
-        ({"dmap.status", 200})
+        ({"dmap.status", 200}),
+        ({"dmap.serverrevision", 77})
      })
   });
 }
@@ -146,25 +177,32 @@ array create_update(object id)
 //!
 array create_server_info(object id)
 {
+//  werror("%O", mkmapping(indices(id), values(id)));
   return
   ({"dmap.serverinforesponse", 
     ({
       	({"dmap.status", 200}),
-	({"daap.protocolversion", "2.0"}),
-	({"dmap.supportsindex", 0}),
-	({"dmap.supportsextensions", 0}),
-	({"dmap.supportsupdate", 0}),
-	({"dmap.supportsuatologout", 0}),
-	({"dmap.timeoutinterval", 300}),
-	({"dmap.loginrequired", 0}),
-	({"dmap.supportsquery", 0}),
-	({"dmap.itemname", "me!"}),
-	({"dmap.supportsresolve", 0}),
-	({"dmap.supportsbrowse", 0}),
-	({"dmap.supportspersistentids", 0}),
+	({"daap.protocolversion", id->request_headers["client-daap-version"]}),
+	({"dmap.supportsindex", 1}),
+//	({"dmap.supportsextensions", 0}),
+//	({"dmap.supportsupdate", 1}),
+	({"dmap.supportsuatologout", 1}),
+	({"dmap.timeoutinterval", 1800}),
+	({"dmap.loginrequired", 1}),
+//	({"dmap.supportsquery", 0}),
+	({"dmap.itemname", "tunesd"}),
+//	({"dmap.supportsresolve", 0}),
+	({"dmap.supportsbrowse", 1}),
+	({"dmap.supportspersistentids", 1}),
 	({"dmap.protocolversion", "2.0"}),
+	({"dmap.databasescount", 2})
     })
   });
+}
+
+mapping create_logout(object id)
+{
+  return (["error": 200, "type": "application/x-dmap-tagged", "data": ""]);
 }
 
 //!
@@ -173,6 +211,7 @@ array create_login(object id)
   int session_id = (int)Crypto.Random.random(1<<31);
 
   sessions[session_id] = ([]);
+werror("session_id:" + session_id);
 
   return 
   ({  "dmap.loginresponse", 
@@ -216,7 +255,7 @@ array make_content_tag_codes_array()
 array get_db_info()
 {
   return 
-    ({
+    ({  
         ({"dmap.itemid", db->get_id()}),
         ({"dmap.persistentid", db->get_pid()}),
         ({"dmap.itemname", db->get_name()}),
@@ -228,6 +267,11 @@ array get_db_info()
 int get_song_count()
 {  
   return db->get_song_count();
+}
+
+int get_playlist_count()
+{  
+  return db->get_playlist_count();
 }
 
 array generate_song_list()
@@ -242,6 +286,24 @@ array generate_song_list()
               ({"dmap.itemid", song["id"]}),
               ({"dmap.itemname", song["name"]}),
               ({"daap.songtime", song["length"] * 1000})
+           })
+       });
+  }
+  return list;
+}
+
+array generate_playlist_list()
+{
+  array playlists = db->get_playlists();
+  array list = allocate(db->get_playlist_count());
+  foreach(playlists;int i; mapping playlist)
+  {
+     list[i] = ({"dmap.listingitem", 
+           ({
+              ({"dmap.itemkind", 2}),
+              ({"dmap.itemid", playlist["id"]}),
+              ({"dmap.itemname", playlist["name"]}),
+              ({"daap.songtime", playlist["length"] * 1000})
            })
        });
   }

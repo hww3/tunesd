@@ -53,6 +53,7 @@ constant content_tags =
 "dmap.itemcount": (["name": "dmap.itemcount", "type": T_INT, "code": "mimc" ]),
 "dmap.returnedcount": (["name": "dmap.returnedcount", "type": T_INT, "code": "mrco" ]),
 "dmap.specifiedtotalcount": (["name": "dmap.specifiedtotalcount", "type": T_INT, "code": "mtco" ]),
+"dmap.containercount": (["name": "dmap.containercount", "type": T_INT, "code": "mctc"]),
 "dmap.listing": (["name": "dmap.listing", "type": T_LIST, "code": "mlcl" ]),
 "dmap.listingitem": (["name": "dmap.listingitem", "type": T_LIST, "code": "mlit" ]),
 "dmap.bag": (["name": "dmap.bag", "type": T_LIST, "code": "mbcl" ]),
@@ -325,13 +326,13 @@ string encode_dmap(array data)
 {
   int len;
   string tag;
-  mixed val;
-  
+  mixed val = "";
+  //werror("Data: %O\n", data);
   mapping t = content_tags[data[0]];
-  if(!t)   if(!t) throw(Error.Generic("Unknown DMAP field " + tag + "\n"));
+  if(!t)   if(!t) throw(Error.Generic("Unknown DMAP field " + data[0]+ "\n"));
   
   int dtype = t["type"];
-
+  tag = t["code"];
   switch(dtype)
   {
     case T_BYTE:
@@ -354,12 +355,11 @@ string encode_dmap(array data)
       break;
     case T_VERSION:
       array vs = data[1] /".";
-      if(sizeof(vs) == 2) val = sprintf("%1d%1d", (int)vs[0], (int)vs[1]);
-      if(sizeof(vs) == 4) val = sprintf("%1d%1d%1d%1d", (int)vs[0], (int)vs[1], (int)vs[2], (int)vs[3]);
+      if(sizeof(vs) == 2) val = sprintf("%2c%1c%1c", (int)vs[0], (int)vs[1], 0);
+      if(sizeof(vs) == 3) val = sprintf("%2c%1c%1c", (int)vs[0], (int)vs[1], (int)vs[2]);
       break;
     case T_LIST:
        mixed element;
-       val = ({  });
        if(!arrayp(data[1]))
          throw(Error.Generic("Cannot encode non-arrays as lists.\n"));
        foreach(data[1];; array v)
@@ -370,7 +370,7 @@ string encode_dmap(array data)
       break;
   }
 
-  return sprintf("%4c%4d%" + sizeof(val) + "s", tag, sizeof(val), val);
+  return sprintf("%4s%4c%" + sizeof(val) + "s", tag, sizeof(val), val);
 }
 
 //!
@@ -386,7 +386,7 @@ array low_decode_dmap(string data)
   int dtype;
   mixed final_data;
 
-  [tag, length, data] = array_sscanf(data, "%4c%4d%s");
+  [tag, length, data] = array_sscanf(data, "%4s%4c%s");
   
   if(length && sizeof(data) > length)
     [block, data] = array_sscanf(data, "%" + length + "s%s");
@@ -419,8 +419,8 @@ array low_decode_dmap(string data)
       final_data = Calendar.Second(parse_int(block, 4));
       break;
     case T_VERSION:
-      if(length == 2) final_data = sprintf("%d.%d", @(array_sscanf(block, "%1d%1d")));
-      if(length == 4) final_data = sprintf("%d.%d.%d.%d", @(array_sscanf(block, "%1d%1d%1d%1d")));
+      if(length == 2) final_data = sprintf("%d.%d", @(array_sscanf(block, "%1c%1c")));
+      if(length == 4) final_data = sprintf("%d.%d.%d.%d", @(array_sscanf(block, "%1c%1c%1c%1c")));
       break;
     case T_LIST:
        mixed element;
@@ -441,5 +441,5 @@ array low_decode_dmap(string data)
 
 int parse_int(string data, int len)
 {  
-   return array_sscanf(data, "%" + len + "d")[0];
+   return array_sscanf(data, "%" + len + "c")[0];
 }
