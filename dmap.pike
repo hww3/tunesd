@@ -324,7 +324,6 @@ aeSP	byte	com.apple.itunes.smart-playlist
 //!
 string encode_dmap(array data)
 {
-  int len;
   string tag;
   mixed val = "";
   //werror("Data: %O\n", data);
@@ -359,7 +358,6 @@ string encode_dmap(array data)
       if(sizeof(vs) == 3) val = sprintf("%2c%1c%1c", (int)vs[0], (int)vs[1], (int)vs[2]);
       break;
     case T_LIST:
-       mixed element;
        if(!arrayp(data[1]))
          throw(Error.Generic("Cannot encode non-arrays as lists.\n"));
        foreach(data[1];; array v)

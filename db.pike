@@ -15,7 +15,7 @@ int get_id()
 
 int get_playlist_count()
 {
-  return 0;
+  return sizeof(playlists);
 }
 
 int get_song_count()
@@ -33,5 +33,17 @@ array get_songs()
 
 array get_playlists()
 {
-  return ({});
+  return values(playlists);
 }
+
+mapping get_playlist(string plid)
+{
+  return playlists[plid];
+}
+
+mapping playlists =  ([
+ "40":
+  (["name": "MLibrary", "items": get_songs()[0..6], "id": 40, "persistent_id": 40, "smart": 0])
+
+]);
+
