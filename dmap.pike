@@ -40,6 +40,8 @@ constant T_LIST = 12;
 
 constant content_tags = 
 ([
+  "dmap.mediakind": (["name": "dmap.mediakind", "type": T_INT, "code": "aeMK"]),  
+"dmap.authenticationschemes": (["name": "dmap.authenticationschemes", "type": T_BYTE, "code": "msas"]),  
 "dmap.dictionary": (["name": "dmap.dictionary", "type": T_LIST, "code": "mdcl" ]),
 "dmap.status": (["name": "dmap.status", "type": T_INT, "code": "mstt" ]),
 "dmap.itemid": (["name": "dmap.itemid", "type": T_INT, "code": "miid" ]),
@@ -80,7 +82,7 @@ constant content_tags =
 "dmap.loginresponse": (["name": "dmap.loginresponse", "type": T_LIST, "code": "mlog" ]),
 "dmap.sessionid": (["name": "dmap.sessionid", "type": T_INT, "code": "mlid" ]),
 "dmap.updateresponse": (["name": "dmap.updateresponse", "type": T_LIST, "code": "mupd" ]),
-"dmap.serverrevision": (["name": "dmap.serverrevision", "type": T_INT, "code": "msur" ]),
+"dmap.serverrevision": (["name": "dmap.serverrevision", "type": T_INT, "code": "musr" ]),
 "dmap.updatetype": (["name": "dmap.updatetype", "type": T_BYTE, "code": "muty" ]),
 "dmap.deletedidlisting": (["name": "dmap.deletedidlisting", "type": T_LIST, "code": "mudl" ]),
 "daap.serverdatabases": (["name": "daap.serverdatabases", "type": T_LIST, "code": "avdb" ]),
