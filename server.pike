@@ -391,6 +391,7 @@ array generate_song_list(object id)
               ({"daap.songartist", song["artist"]||""}),
               ({"daap.songalbum", song["album"]||""}),
               ({"daap.songtracknumber", (int)song["track"]||0}),
+              ({"songtrackcount", (int)song["trackcount"]||0}),
               ({"daap.songgenre", song["genre"]||"Unknown"}),
               ({"daap.songyear", ((int)song["year"]) || 0})
            })
