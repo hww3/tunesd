@@ -199,7 +199,26 @@ class mon
 
    object db; 
    
-  mapping read_id3(string path)
+  mapping read_id3(string path, object f)
+  {
+    mapping m;
+    object t;
+    if(catch(t = Standards.ID3.Tag(Stdio.File(path))))
+      return 0;
+    
+    m = t->friendly_values();
+//werror("t: %O\n", t);    
+    if(t->frame_map && t->frame_map["TLEN"])
+    {
+//      werror("%O\n", t->frame_map["TLEN"][0]->data->value);
+      m->length = t->frame_map["TLEN"][0]->data->value;
+    }
+    if(m && m->genre) m->genre = id3_genres[m->genre];
+    
+    return m;
+  }
+
+  mapping old_read_id3(string path, object f)
   {
     mapping m;
     
@@ -283,7 +302,7 @@ class mon
       string atom, value;
  //     werror("file exists: %O\n", p);
       mapping a;
-      if(a = read_id3(p))
+      if(a = read_id3(p, s))
       {
         atts = atts + a;
       }

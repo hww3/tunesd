@@ -349,7 +349,7 @@ string encode_dmap(array data)
       val = sprintf("%8c", data[1]);
       break;
     case T_STRING:
-      val = data[1];
+      val = string_to_utf8(data[1]);
       break;
     case T_DATE:
       val = sprintf("%4c", (intp(data[1])?data[1]:data[1]->unix_timestamp()));
@@ -413,7 +413,7 @@ array low_decode_dmap(string data)
       final_data = parse_int(block, 8);
       break;
     case T_STRING:
-      final_data = block;
+      final_data = utf8_to_string(block);
       break;
     case T_DATE:
       final_data = Calendar.Second(parse_int(block, 4));
