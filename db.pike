@@ -1,21 +1,58 @@
+int in_processing_changes = 0;
+int id = 100;
+
+ADT.Queue change_queue = ADT.Queue();
+
+mapping songs = ([]);
+  
 static void create()
 {
-  start_revision_checker();  
+  call_out(start_revision_checker, 10);  
 }
 
-
-// this is not necessary, it's only purpouse is to generate "fake" updates
-// to the database so that we can demonstrate library updating.
-void start_revision_checker()
+void add(mapping ent)
 {
+  change_queue->write(ent);
+}
+
+void process_change_queue()
+{
+  if(in_processing_changes) return;
+  in_processing_changes = 1;
+werror("flushing changes to db\n");
+  while(!change_queue->is_empty())
+  {
+     mapping ent = change_queue->read();
+     ent->id = ++id;
+     if(!ent->title) ent->title = basename(ent->path);
+     songs[ent->id] = ent;
+  }
   gsc++;
   did_revise(gsc);
-  call_out(start_revision_checker, 600);
+  in_processing_changes = 0;
+}
+
+void start_revision_checker()
+{
+  if(!change_queue->is_empty())
+  {
+     process_change_queue();
+  }
+  call_out(start_revision_checker, 30);
+}
+
+string get_song_path(int id)
+{
+  mapping m = songs[id];
+  if(m && m->path)
+    return m->path;
+
+  else return 0;    
 }
 
 string get_name()
 {
-  return "Firefly2x";
+  return "tunesd";
 }
 
 int get_pid()
@@ -37,15 +74,19 @@ int gsc = 0;
 
 int get_song_count()
 {
-  return 10 + gsc;
+//  return 10 + gsc;
+  return sizeof(songs);
 }
 
 array get_songs()
 {
+/*
   array x = allocate(get_song_count());
   for(int i = 0 ; i < sizeof(x); i++)
     x[i] = (["name": "song " + i, "id": i, "length": i*5]);
   return x;
+*/
+  return values(songs);
 }
 
 array get_playlists()
@@ -63,8 +104,6 @@ mapping playlists =  ([
   (["name": "MLibrary", "items": get_songs()[0..6], "id": 40, "persistent_id": 40, "smart": 0])
 
 ]);
-
-
 
 function did_revise = low_did_revise;
 

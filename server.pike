@@ -1,10 +1,15 @@
 inherit "dmap";
 
+#define MUSICPATH "/Users/hww3/Music/iTunes/iTunes Media/Music"
+
+string version = "0.1";
+
 mapping locks = ([]);
 
 mapping sessions = ([]);
 int revision_num = 1;
 object db = ((program)"db")();
+object check = ((program)"check")();
 
 object port;
 int default_port = 3689;
@@ -23,9 +28,9 @@ int main(int argc, array(string) argv) {
 
   write("Advertising this application via Bonjour.\n");
 
-
   db->did_revise = server_did_revise;
-
+  check->check(MUSICPATH, db);
+  
   return -1; 
 }
 
@@ -129,9 +134,14 @@ array|mapping handle_sub_request(object request)
 mapping stream_audio(object id, string dbid, string songid)
 {
   // Protocols.HTTP.Server takes care of simple Range requests for us... how nice!
-  string song = "/tmp/song.mp3";
+  string song = db->get_song_path((int)songid);
 
-  return (["type": "application/x-dmap-tagged", "extra_heads": (["DAAP-Server": "mt-daapd/0.2.4.2"]), "file": Stdio.File(song)]);  
+  werror("song file is " + song + "\n");
+
+  if(song)
+    return (["type": "application/x-dmap-tagged", "extra_heads": (["DAAP-Server": "tunesd/" + version]), "file": Stdio.File(song)]);  
+  else 
+    return (["type": "text/plain", "error": 404, "extra_heads": (["DAAP-Server": "tunesd/" + version]),  "data": "song not found."]);
 }
 
 mapping auth_required(string realm)
@@ -143,8 +153,8 @@ mapping auth_required(string realm)
   string data = "authentication required.";
   hauth["WWW-Authenticate"] = "Basic realm=\"webserver\"";
   
-  return (["server": "mt-daapd/0.2.4.2", "type": type, 
-    "extra_heads": (["Accept-Ranges": "bytes", "DAAP-Server": "mt-daapd/0.2.4.2"]) + hauth, 
+  return (["server": "tunesd/" + version, "type": type, 
+    "extra_heads": (["Accept-Ranges": "bytes", "DAAP-Server": "tunesd/" + version]) + hauth, 
     "error": code, "data": data]);
 }
 mapping create_response(array|mapping data, int code)
@@ -152,8 +162,8 @@ mapping create_response(array|mapping data, int code)
   if(mappingp(data)) 
     return data;
   else  
-    return (["server": "mt-daapd/0.2.4.2", "type": "application/x-dmap-tagged", 
-      "extra_heads": (["Accept-Ranges": "bytes", "DAAP-Server": "mt-daapd/0.2.4.2"]), 
+    return (["server": "tunesd/" + version, "type": "application/x-dmap-tagged", 
+      "extra_heads": (["Accept-Ranges": "bytes", "DAAP-Server": "tunesd/" + version]), 
       "error": code, "data": encode_dmap(data)]);
 }
 
@@ -271,7 +281,7 @@ array create_server_info(object id)
 	      ({"dmap.supportsindex", 1}),
       	({"dmap.supportsbrowse", 1}),
       	({"dmap.supportsquery", 1}),
-	      ({"dmap.supportsupdate", 1}),
+	      ({"dmap.supportsupdate", 0}),
 	      ({"dmap.databasescount", 1})
     })
   });
@@ -375,10 +385,14 @@ array generate_song_list(object id)
            ({
              ({"dmap.itemkind", 2}),
              ({"dmap.itemid", song["id"]}),
-             ({"dmap.itemname", song["name"]}),
+             ({"dmap.itemname", song["title"]||"---"}),
               ({"dmap.persistentid", song["id"]}),
               ({"dmap.mediakind", 1}),
-              ({"daap.songtime", song["length"] * 1000})
+              ({"daap.songartist", song["artist"]||""}),
+              ({"daap.songalbum", song["album"]||""}),
+              ({"daap.songtracknumber", (int)song["track"]||0}),
+              ({"daap.songgenre", song["genre"]||"Unknown"}),
+              ({"daap.songyear", ((int)song["year"]) || 0})
            })
        });
   }
