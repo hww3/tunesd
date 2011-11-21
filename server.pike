@@ -1,7 +1,12 @@
 inherit "dmap";
 
-#define MUSICPATH "/Users/hww3/Music/iTunes/iTunes Media/Music"
+// the default music path if one isn't specified.
+#define MUSICPATH "$HOME/iTunes/iTunes Media/Music"
 
+// the default network port to listen on if one isn't specified.
+#define SERVERPORT 3689
+
+string musicpath;
 string version = "0.1";
 
 mapping locks = ([]);
@@ -12,13 +17,15 @@ object db = ((program)"db")();
 object check = ((program)"check")();
 
 object port;
-int default_port = 3689;
+int default_port = SERVERPORT;
 Protocols.DNS_SD.Service bonjour;
 
 int main(int argc, array(string) argv) { 
   int my_port = default_port; 
-  if(argc>1) my_port=(int)argv[1];
+  if(argc>2) my_port=(int)argv[2];
 
+  musicpath = argc>1?argv[1]:replace(MUSICPATH, "$HOME", getenv()["HOME"]);
+  write("Music stored in " + musicpath + ".\n");
   write("FinServe starting on port " + my_port + "...\n");
 
   port = Protocols.HTTP.Server.Port(handle_request, my_port); 
@@ -29,7 +36,7 @@ int main(int argc, array(string) argv) {
   write("Advertising this application via Bonjour.\n");
 
   db->did_revise = server_did_revise;
-  check->check(MUSICPATH, db);
+  check->check(musicpath, db);
   
   return -1; 
 }
@@ -391,7 +398,7 @@ array generate_song_list(object id)
               ({"daap.songartist", song["artist"]||""}),
               ({"daap.songalbum", song["album"]||""}),
               ({"daap.songtracknumber", (int)song["track"]||0}),
-              ({"songtrackcount", (int)song["trackcount"]||0}),
+              ({"daap.songtrackcount", (int)song["trackcount"]||0}),
               ({"daap.songgenre", song["genre"]||"Unknown"}),
               ({"daap.songyear", ((int)song["year"]) || 0})
            })

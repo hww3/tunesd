@@ -52,7 +52,7 @@ string get_song_path(int id)
 
 string get_name()
 {
-  return "tunesd";
+  return "tunesd on " + gethostname();
 }
 
 int get_pid()
