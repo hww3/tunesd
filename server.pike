@@ -105,15 +105,17 @@ werror("request: %O\n", request);
 
 array|mapping handle_sub_request(object request)
 {
-    string dbid, plid, songid;
+    string dbid, plid, song;
+    int songid;
     // need to handle the following:
     // /databases/<dbid>/items
     // /databases/<dbid>/containers
     // /databases/<dbid>/containers/<plid>/items
     // /databases/<dbid>/items/<songid>.mp3
 
-    if(sscanf(request->not_query, "/databases/%s/items/%s.mp3", dbid, songid) == 2)
+    if(sscanf(request->not_query, "/databases/%s/items/%s", dbid, song) == 2)
     {
+      sscanf(song, "%d.%s", songid, song);
       return stream_audio(request, dbid, songid);
     }
     else if(sscanf(request->not_query, "/databases/%s/containers/%s/items", dbid, plid) == 2)
@@ -138,15 +140,16 @@ array|mapping handle_sub_request(object request)
     }
 }
 
-mapping stream_audio(object id, string dbid, string songid)
+mapping stream_audio(object id, string dbid, int songid)
 {
   // Protocols.HTTP.Server takes care of simple Range requests for us... how nice!
-  string song = db->get_song_path((int)songid);
+  string song = db->get_song_path(songid);
 
-  werror("song file is " + song + "\n");
+  object s = file_stat(song);
+  werror("song file is %s: %O\n", song, s);
 
   if(song)
-    return (["type": "application/x-dmap-tagged", "extra_heads": (["DAAP-Server": "tunesd/" + version]), "file": Stdio.File(song)]);  
+    return (["type": "audio/" + db->get_song(songid)["format"]/*"application/x-dmap-tagged"*/, "extra_heads": (["DAAP-Server": "tunesd/" + version]), "file": Stdio.File(song)]);  
   else 
     return (["type": "text/plain", "error": 404, "extra_heads": (["DAAP-Server": "tunesd/" + version]),  "data": "song not found."]);
 }
@@ -275,6 +278,9 @@ array create_update(object id, int|void is_revised)
 array create_server_info(object id)
 {
 //  werror("%O", mkmapping(indices(id), values(id)));
+
+  m_delete(locks, id->variables->sessionid||1);
+  
   return
   ({"dmap.serverinforesponse", 
     ({
@@ -401,7 +407,9 @@ array generate_song_list(object id)
               ({"daap.songtrackcount", (int)song["trackcount"]||0}),
               ({"daap.songgenre", song["genre"]||"Unknown"}),
               ({"daap.songyear", ((int)song["year"]) || 0}),
-              ({"daap.songtime", ((int)song["length"] || 0)})
+              ({"daap.songtime", ((int)song["length"] || 0)}),
+              ({"daap.songformat", song["format"]}),
+              ({"daap.songdatakind", 0})
            })
        });
   }

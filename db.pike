@@ -25,6 +25,7 @@ werror("flushing changes to db\n");
      mapping ent = change_queue->read();
      ent->id = ++id;
      if(!ent->title) ent->title = basename(ent->path);
+     ent->format = lower_case((ent->path/".")[-1] || "mp3");
      songs[ent->id] = ent;
   }
   gsc++;
@@ -41,6 +42,10 @@ void start_revision_checker()
   call_out(start_revision_checker, 30);
 }
 
+mapping get_song(int id)
+{
+  return songs[id];
+}
 string get_song_path(int id)
 {
   mapping m = songs[id];

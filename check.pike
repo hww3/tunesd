@@ -170,7 +170,7 @@ constant id3_genres = ([
 constant atom_map = 
   ([
      "©alb": "album",
-     "©art": "artist",
+     "©ART": "artist",
      "©day": "year",
      "©nam": "title",
      "©gen": "genre",
@@ -292,6 +292,7 @@ class mon
   void file_created(string p, Stdio.Stat s)
   {
     werror("file created: %O\n", p);
+    file_exists(p, s);
   }
 
   void file_exists(string p, Stdio.Stat s)
@@ -306,24 +307,27 @@ class mon
       {
         atts = atts + a;
       }
-      else
+      else if(a = read_atoms(p, s))
       {
-        array x = (Process.popen("/Users/hww3/Downloads/AtomicParsley-MacOSX-0.9.0/AtomicParsley \"" + p + "\" -t 2>&1"))/"\n";
-        foreach(x;;string line)
+        string field;
+        if(a->moov && a->moov->udta && a->moov->udta->meta)
         {
-          if(sscanf(line, "Atom \"%s\" contains: %s", atom, value))
-          {
-            string field;
-            if(field = atom_map[utf8_to_string(atom)])
-              atts[field] = value;
-   //         else werror("unknown atom %O\n", atom);
-          }
+          a = a->moov->udta->meta;
         }
+        foreach(a->ilst||([]);string key; mixed val)
+        {
+          
+          if(field = atom_map[key])
+            atts[field] = val;
+   //     else werror("unknown atom %O\n", atom);
+        }
+        
+//werror("atts: %O\n", atts);
       }
       
       if(sizeof(atts))
       {  
-        if(atts->track)
+        if(atts->track && stringp(atts->track))
         {
           int tracknum, trackcount;
           sscanf(atts->track, "%d of %d", tracknum, trackcount);
@@ -332,6 +336,12 @@ class mon
           if(trackcount)
             atts->trackcount = (string)trackcount;
         }
+        else if(atts->track && arrayp(atts->track))
+        {
+          if(sizeof(atts->track) > 1)
+            atts->trackcount = (string)atts->track[1];
+          atts->track = (string)atts->track[0];
+        }
       //  werror("metadata: %O\n", atts);
 }
     }
@@ -339,6 +349,16 @@ class mon
     atts["path"] = p;
     if(db) db->add(atts);
   }
+}
+
+mapping read_atoms(string p, object s)
+{
+   object atomsmasher = (object)"atoms";
+   
+   mapping m;
+   catch(m = atomsmasher->parse(p));
+   //werror("%O\n", m);
+   return m;
 }
 
 object m;
