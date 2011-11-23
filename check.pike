@@ -207,88 +207,26 @@ class mon
       return 0;
     
     m = t->friendly_values();
+    if(!sizeof(m))
+      m->title = (basename(path)/".")[0];
 //werror("t: %O\n", t);    
     if(t->frame_map && t->frame_map["TLEN"])
     {
 //      werror("%O\n", t->frame_map["TLEN"][0]->data->value);
       m->length = t->frame_map["TLEN"][0]->data->value;
     }
+    if(t->frame_map && t->frame_map["TP1"])
+    {
+    //      werror("%O\n", t->frame_map["TLEN"][0]->data->value);
+      m->artist = (t->frame_map["TP1"][0]->data->data)-"\0";
+    }
+
+    m = map(m, lambda(mixed v){return (stringp(v)?String.trim_whites(v):v);});
     if(m && m->genre) m->genre = id3_genres[m->genre];
     
     return m;
   }
-
-  mapping old_read_id3(string path, object f)
-  {
-    mapping m;
-    
-    if(!(m = read_id3v2(path)))
-      m = read_id3v1(path);
-    
-    if(m)
-    {
-      // massage the data
-      
-      if(m->genre)
-      {
-        int genre;
-        sscanf(m->genre, "(%d)", genre);
-        if(genre) m->genre = id3_genres[genre];
-      }  
-    }
-    
-    return m;  
-      
-  }
-  mapping read_id3v2(string path)
-  {
-    string atom, value;
-    mapping atts = ([]);
-    array x = Process.popen("/opt/local/bin/id3info \"" + path + "\"")/"\n";
-     foreach(x;;string line)
-      {
-        if(sscanf(line, "=== %4[A-Z0-9] (%*s): %s", atom, value))
-        {
-          string field;
-          if((field = id3v2_map[utf8_to_string(atom)]) && !atts[field])
-            atts[field] = value;
-//          else werror("unknown atom %O\n", atom);
-        }
-      }
-    
-    if(sizeof(atts))
-      return atts;
-    else return 0;
-  }
   
-  mapping read_id3v1(string path)
-  {
-
-   Stdio.File f = Stdio.File(path);
-   f->seek(-128);
-   ADT.Struct tag = ID3(f);
-   if(tag->head=="TAG") {
-     mapping m = ([]);
-     mixed err;
-     err = catch(m = map(map((["title": (string)tag->title,
-         "artist": (string) tag->artist,
-         "album": (string) tag->album,
-         "year": (string) tag->year,
-         "comment": (string) tag->comment,
-         "genre": id3_genres[tag->genre]
-       ]), String.trim_all_whites), lambda(string a){return a-"\0";}));
-  
-     if(err) 
-     {
-      werror("failed to extract metadata from %O.\n");
-       return ([]);
-     }     
-     return m;
-     
-   }
-   else return 0;
-  }
-
   void file_created(string p, Stdio.Stat s)
   {
     werror("file created: %O\n", p);
@@ -298,13 +236,14 @@ class mon
   void file_exists(string p, Stdio.Stat s)
   {
     mapping atts = ([]);
-    if(s->isreg)
+    if(!s->isdir && s->isreg)
     {
- //     werror("file exists: %O\n", p);
+    //  werror("file exists: %O\n", p);
       mapping a;
       if(a = read_id3(p, s))
       {
         atts = atts + a;
+     //   werror("got id3: %O\n", a);
       }
       else if(a = read_atoms(p, s))
       {
@@ -342,11 +281,15 @@ class mon
           atts->track = (string)atts->track[0];
         }
       //  werror("metadata: %O\n", atts);
-}
+      }
     }
-    
-    atts["path"] = p;
-    if(db) db->add(atts);
+    if(sizeof(atts))
+    {
+      atts["path"] = p;
+      if(db) 
+        db->add(atts);      
+    }
+//    else werror("SCAN ERROR: %s\n", p);
   }
 }
 

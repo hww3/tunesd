@@ -1,5 +1,6 @@
 int in_processing_changes = 0;
 int id = 100;
+int gsc = 0;
 
 string sql_url;
 Sql.Sql sql;
@@ -8,17 +9,20 @@ ADT.Queue change_queue = ADT.Queue();
 
 constant songs_fields = ({
   ({"id", "integer not null primary key"}),
-  ({"name", "string not null"}),
+  ({"title", "string not null"}),
   ({"path", "string not null"}),
-  ({"hash", "string not null"}),
+//  ({"hash", "string not null"}),
   ({"artist", "string"}),
   ({"album", "string"}),
+  ({"composer", "string"}),
   ({"genre", "string"}),
-  ({"time", "integer"}),
+  ({"length", "integer"}),
   ({"year", "string"}),
   ({"format", "string"}),
   ({"track", "string"}),
-  ({"track_count", "string"}),
+  ({"trackcount", "string"}),
+  ({"comment", "string"}),
+  ({"batch", "int"}),
 });
 
 constant playlists_fields = ({
@@ -42,15 +46,21 @@ static void create(string sqldb)
 
 void start_db(string sqlurl)
 {
+  werror("Starting DB...\n");
   sql_url = sqlurl;
   sql = Sql.Sql(sql_url);
   
   if(sql)
     check_tables(sql);  
+    
+  mapping r = sql->query("SELECT MAX(batch) as gsc FROM SONGS")[0];
+  
+  gsc = (int)r->gsc || 1;
 }
 
 void check_tables(Sql.Sql sql)
 {
+  werror("Checking tables...\n");
   process_table(sql, "songs", songs_fields);
   process_table(sql, "playlists", playlists_fields);
   process_table(sql, "playlist_members", playlist_members_fields);
@@ -123,14 +133,44 @@ werror("flushing changes to db\n");
   while(!change_queue->is_empty())
   {
      mapping ent = change_queue->read();
-     ent->id = ++id;
+     if(has_entry(sql, ent)) {werror("skipping %s\n", ent->path); continue; }
+    // werror("adding " + ent->path + "\n");
+     // ent->id = ++id;
      if(!ent->title) ent->title = basename(ent->path);
      ent->format = lower_case((ent->path/".")[-1] || "mp3");
-     songs[ent->id] = ent;
+   //  ent->hash = String.string2hex(Crypto.MD5()->hash(Stdio.read_file(ent->path)));
+   //  songs[ent->id] = ent;
+     ent->batch = gsc;
+     write_entry_to_db(sql, ent);
   }
   gsc++;
   did_revise(gsc);
   in_processing_changes = 0;
+}
+
+int has_entry(Sql.Sql sql, mapping entry)
+{
+  array a = sql->query("select * from songs where path = %s", entry->path);  
+  if(sizeof(a)) return 1;
+  else return 0;
+}
+
+void write_entry_to_db(Sql.Sql sql, mapping entry)
+{
+  
+    array vc = ({});
+    foreach(entry; string key; mixed val)
+    {
+   //   if(!val) m_delete(entry, key);
+      if(intp(val))
+        vc += ({"%d"});
+      else
+        vc += ({"%s"});
+    }
+    string q = "INSERT INTO songs (" + (indices(entry)* ", ") + ") VALUES(" + (vc * ", ") + ")";
+//werror(q + sprintf("%O\n", values(entry)));
+    sql->query(q, @values(entry));
+    //  werror("failed to write entry for %s: %O\n", entry->path, entry);
 }
 
 void start_revision_checker()
@@ -174,8 +214,6 @@ int get_playlist_count()
 {
   return sizeof(playlists);
 }
-
-int gsc = 0;
 
 int get_song_count()
 {
