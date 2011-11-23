@@ -300,7 +300,6 @@ class mon
     mapping atts = ([]);
     if(s->isreg)
     {
-      string atom, value;
  //     werror("file exists: %O\n", p);
       mapping a;
       if(a = read_id3(p, s))
