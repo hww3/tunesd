@@ -6,6 +6,8 @@ inherit "dmap";
 // the default network port to listen on if one isn't specified.
 #define SERVERPORT 3689
 
+#define DBURL "sqlite://tunesd.sqlite3"
+
 string musicpath;
 string version = "0.1";
 
@@ -13,7 +15,7 @@ mapping locks = ([]);
 
 mapping sessions = ([]);
 int revision_num = 1;
-object db = ((program)"db")();
+object db;
 object check = ((program)"check")();
 
 object port;
@@ -25,8 +27,11 @@ int main(int argc, array(string) argv) {
   if(argc>2) my_port=(int)argv[2];
 
   musicpath = argc>1?argv[1]:replace(MUSICPATH, "$HOME", getenv()["HOME"]);
+
   write("Music stored in " + musicpath + ".\n");
   write("FinServe starting on port " + my_port + "...\n");
+
+  startup();
 
   port = Protocols.HTTP.Server.Port(handle_request, my_port); 
 
@@ -34,11 +39,15 @@ int main(int argc, array(string) argv) {
                      "_daap._tcp", "", (int)my_port);
 
   write("Advertising this application via Bonjour.\n");
+    
+  return -1; 
+}
 
+void startup()
+{
+  db = ((program)"db")(DBURL);
   db->did_revise = server_did_revise;
   check->check(musicpath, db);
-  
-  return -1; 
 }
 
 void server_did_revise(int revision)
