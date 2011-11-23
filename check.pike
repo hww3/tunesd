@@ -226,6 +226,12 @@ class mon
     
     return m;
   }
+
+  void file_deleted(string p, Stdio.Stat s)
+  {
+    werror("file deleted: %O\n", p);
+    db->remove(p);
+  }
   
   void file_created(string p, Stdio.Stat s)
   {

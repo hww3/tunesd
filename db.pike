@@ -42,6 +42,7 @@ static void create(string sqldb)
 {
   start_db(sqldb);  
   call_out(start_revision_checker, 10);  
+  call_out(remove_stale_db_entries, 125);  
 }
 
 void start_db(string sqlurl)
@@ -120,6 +121,12 @@ int table_exists(Sql.Sql sql, string table)
   return (sizeof(sql->list_tables(table))>=1);
 }
 
+void remove(string path)
+{
+  werror("removing stale entry for %s", path);
+  sql->query("DELETE FROM songs WHERE path=%s", path);  
+}
+
 void add(mapping ent)
 {
   change_queue->write(ent);
@@ -173,13 +180,25 @@ void write_entry_to_db(Sql.Sql sql, mapping entry)
     //  werror("failed to write entry for %s: %O\n", entry->path, entry);
 }
 
+void remove_stale_db_entries()
+{
+  foreach(sql->query("SELECT path, id FROM songs");; mapping s)
+  {
+    if(!file_stat(s->path))
+    {
+      werror("removing stale entry for %s", s->path);
+      sql->query("DELETE FROM songs WHERE id=%d", (int)s->id);
+    }
+  }  
+}
+
 void start_revision_checker()
 {
   if(!change_queue->is_empty())
   {
      process_change_queue();
   }
-  call_out(start_revision_checker, 30);
+  call_out(start_revision_checker, 120);
 }
 
 mapping get_song(int id)
