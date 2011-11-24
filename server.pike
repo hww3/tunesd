@@ -1,7 +1,7 @@
 inherit "dmap";
 
 // the default music path if one isn't specified.
-#define MUSICPATH "$HOME/iTunes/iTunes Media/Music"
+#define MUSICPATH "$HOME/Music/iTunes/iTunes Media/Music"
 
 // the default network port to listen on if one isn't specified.
 #define SERVERPORT 3689
@@ -193,12 +193,13 @@ array create_items(object id, string dbid)
   ({ "daap.databasesongs",
      ({
         ({"dmap.status", 200}),
-        ({"dmap.updatetype", 0}),
+        ({"dmap.updatetype", db->has_removed_in_revision((int)(id->variables["revision-number"]))?1:0}),
         ({"dmap.specifiedtotalcount", get_song_count()}),
         ({"dmap.returnedcount", get_song_count()}),
         ({"dmap.listing", 
               generate_song_list(id)
         }),
+//        ({"dmap.deletedidlisting", ({  ({"dmap.itemid", id) }) });
      })
   });
 }
@@ -406,9 +407,9 @@ array generate_song_list(object id)
      list[i] = ({"dmap.listingitem", 
            ({
              ({"dmap.itemkind", 2}),
-             ({"dmap.itemid", song["id"]}),
+             ({"dmap.itemid", (int)song["id"]}),
              ({"dmap.itemname", song["title"]||"---"}),
-              ({"dmap.persistentid", song["id"]}),
+              ({"dmap.persistentid", (int)song["id"]}),
               ({"dmap.mediakind", 1}),
               ({"daap.songartist", song["artist"]||""}),
               ({"daap.songalbum", song["album"]||""}),
@@ -472,8 +473,8 @@ array generate_playlist_items(string dbid, string plid)
      list[i] = ({"dmap.listingitem", 
            ({
              ({"dmap.itemkind", 2}),
-             ({"dmap.itemid", song["id"]}),
-             ({"dmap.containeritemid", song["id"]}),
+             ({"dmap.itemid", (int)song["id"]}),
+             ({"dmap.containeritemid", (int)song["id"]}),
            })
        });
   }

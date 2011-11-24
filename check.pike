@@ -244,7 +244,7 @@ class mon
     mapping atts = ([]);
     if(!s->isdir && s->isreg)
     {
-    //  werror("file exists: %O\n", p);
+   //   werror("file exists: %O\n", p);
       mapping a;
       if(a = read_id3(p, s))
       {
@@ -316,7 +316,7 @@ void check(string path, object db)
   m = mon(Filesystem.Monitor.basic.MF_RECURSE);
   m->db = db;
   m->monitor(path, Filesystem.Monitor.basic.MF_RECURSE);
-  
+  werror("registering music path " + path  + "\n");
   check_backend = Pike.Backend();
   m->set_backend(check_backend);
   Thread.Thread(run_check_thread);

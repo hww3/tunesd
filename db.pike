@@ -5,10 +5,13 @@ int gsc = 0;
 string sql_url;
 Sql.Sql sql;
 
+array removals = ({});
+mapping revision_removals = ([]);
+
 ADT.Queue change_queue = ADT.Queue();
 
 constant songs_fields = ({
-  ({"id", "integer not null primary key"}),
+  ({"id", "integer primary key"}),
   ({"title", "string not null"}),
   ({"path", "string not null"}),
 //  ({"hash", "string not null"}),
@@ -56,7 +59,8 @@ void start_db(string sqlurl)
     
   mapping r = sql->query("SELECT MAX(batch) as gsc FROM SONGS")[0];
   
-  gsc = (int)r->gsc || 1;
+  gsc = (int)r->gsc;
+  gsc++;
 }
 
 void check_tables(Sql.Sql sql)
@@ -124,7 +128,12 @@ int table_exists(Sql.Sql sql, string table)
 void remove(string path)
 {
   werror("removing stale entry for %s", path);
+  array r = sql->query("SELECT id FROM songs WHERE path=%s", path);
   sql->query("DELETE FROM songs WHERE path=%s", path);  
+  
+  if(r && sizeof(r))
+    foreach(r;;mapping row)
+      removals += ({(int)row->id});
 }
 
 void add(mapping ent)
@@ -132,8 +141,22 @@ void add(mapping ent)
   change_queue->write(ent);
 }
 
+int has_removed_in_revision(int revision)
+{
+  if(revision_removals[revision])
+    return 1;
+  else return 0;
+}
+
+array get_removed_in_revision(int revision)
+{
+  return revision_removals[revision];
+}
+
 void process_change_queue()
 {
+  int had_changes = 0;
+  
   if(in_processing_changes) return;
   in_processing_changes = 1;
 werror("flushing changes to db\n");
@@ -147,11 +170,21 @@ werror("flushing changes to db\n");
      ent->format = lower_case((ent->path/".")[-1] || "mp3");
    //  ent->hash = String.string2hex(Crypto.MD5()->hash(Stdio.read_file(ent->path)));
    //  songs[ent->id] = ent;
-     ent->batch = gsc;
+     ent->batch = gsc+1;
      write_entry_to_db(sql, ent);
+     had_changes++;
   }
-  gsc++;
-  did_revise(gsc);
+  if(sizeof(removals))
+  {
+    revision_removals[gsc+1] = removals;
+    removals = ({});
+    had_changes++;
+  }
+  if(had_changes)
+  {
+    did_revise(gsc+1);
+    gsc++;
+  }
   in_processing_changes = 0;
 }
 
@@ -188,6 +221,7 @@ void remove_stale_db_entries()
     {
       werror("removing stale entry for %s", s->path);
       sql->query("DELETE FROM songs WHERE id=%d", (int)s->id);
+      
     }
   }  
 }
@@ -198,16 +232,19 @@ void start_revision_checker()
   {
      process_change_queue();
   }
-  call_out(start_revision_checker, 120);
+  call_out(start_revision_checker, 30);
 }
 
 mapping get_song(int id)
 {
-  return songs[id];
+  array x = sql->query("SELECT * FROM SONGS WHERE id=%d", id);
+  if(sizeof(x)) return x[0];
+  else
+    return 0;
 }
 string get_song_path(int id)
 {
-  mapping m = songs[id];
+  mapping m = get_song(id);
   if(m && m->path)
     return m->path;
 
@@ -237,7 +274,8 @@ int get_playlist_count()
 int get_song_count()
 {
 //  return 10 + gsc;
-  return sizeof(songs);
+  array x = sql->query("SELECT COUNT(*) AS c FROM songs");
+  return (int)x[0]->c;
 }
 
 array get_songs()
@@ -248,7 +286,8 @@ array get_songs()
     x[i] = (["name": "song " + i, "id": i, "length": i*5]);
   return x;
 */
-  return values(songs);
+  array x = sql->query("SELECT * FROM songs");
+  return x;
 }
 
 array get_playlists()
@@ -261,11 +300,14 @@ mapping get_playlist(string plid)
   return playlists[plid];
 }
 
-mapping playlists =  ([
+mapping playlists =  ([]);
+/*
+([
  "40":
   (["name": "MLibrary", "items": get_songs()[0..6], "id": 40, "persistent_id": 40, "smart": 0])
 
 ]);
+*/
 
 function did_revise = low_did_revise;
 
