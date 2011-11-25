@@ -45,8 +45,7 @@ int main(int argc, array(string) argv) {
 
 void startup()
 {
-  db = ((program)"db")(DBURL);
-  db->did_revise = server_did_revise;
+  db = ((program)"db")(DBURL, server_did_revise);
   check->check(musicpath, db);
 }
 
@@ -189,18 +188,27 @@ mapping create_response(array|mapping data, int code)
 //! 
 array create_items(object id, string dbid)
 {
+  array x = 
+       ({
+          ({"dmap.status", 200}),
+          ({"dmap.updatetype", db->has_removed_in_revision((int)(id->variables["revision-number"]))?1:0}),
+          ({"dmap.specifiedtotalcount", get_song_count()}),
+          ({"dmap.returnedcount", get_song_count()}),
+          ({"dmap.listing", 
+                generate_song_list(id)
+          })
+  //        ({"dmap.deletedidlisting", ({  ({"dmap.itemid", id) }) });
+       });
+  
+  if(db->has_removed_in_revision((int)(id->variables["revision-number"])))
+  {
+    werror("have removed items...\n");
+    x +=({({"dmap.deletedidlisting",  generate_deleted_ids((int)id->variables["revision-number"]) }) });
+  }
+  
   return 
   ({ "daap.databasesongs",
-     ({
-        ({"dmap.status", 200}),
-        ({"dmap.updatetype", db->has_removed_in_revision((int)(id->variables["revision-number"]))?1:0}),
-        ({"dmap.specifiedtotalcount", get_song_count()}),
-        ({"dmap.returnedcount", get_song_count()}),
-        ({"dmap.listing", 
-              generate_song_list(id)
-        }),
-//        ({"dmap.deletedidlisting", ({  ({"dmap.itemid", id) }) });
-     })
+    x
   });
 }
 
@@ -373,6 +381,18 @@ array get_db_info()
     });
 }
 
+array generate_deleted_ids(int revision)
+{
+  array x = db->get_removed_in_revision(revision);
+  array y = allocate(sizeof(x));
+  foreach(x;int i; int id)
+  {
+    y[i] = ({"dmap.itemid", id});
+  }
+  
+  return y;
+}
+
 int get_song_count()
 {  
   return db->get_song_count();
@@ -400,8 +420,14 @@ array generate_song_list(object id)
   if(id->variables->type != "music")
     return 0; // will probably throw an error as a result.
   
-  array songs = db->get_songs();
-  array list = allocate(db->get_song_count());
+  array songs;
+  
+  if(id->variables["delta"])
+    songs = db->get_songs((int)id->variables["revision-number"], (int)id->variables["delta"]);
+  else
+    songs = db->get_songs();
+    
+  array list = allocate(sizeof(songs));
   foreach(songs;int i; mapping song)
   {
      list[i] = ({"dmap.listingitem", 

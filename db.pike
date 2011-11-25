@@ -5,10 +5,12 @@ int gsc = 0;
 string sql_url;
 Sql.Sql sql;
 
-array removals = ({});
+function did_revise = low_did_revise;
+
 mapping revision_removals = ([]);
 
 ADT.Queue change_queue = ADT.Queue();
+ADT.Queue remove_queue = ADT.Queue();
 
 constant songs_fields = ({
   ({"id", "integer primary key"}),
@@ -41,8 +43,10 @@ constant playlist_members_fields = ({
 
 mapping songs = ([]);
   
-static void create(string sqldb)
+static void create(string sqldb, function server_did_revise)
 {
+  did_revise = server_did_revise;
+  
   start_db(sqldb);  
   call_out(start_revision_checker, 10);  
   call_out(remove_stale_db_entries, 125);  
@@ -61,6 +65,8 @@ void start_db(string sqlurl)
   
   gsc = (int)r->gsc;
   gsc++;
+  
+  did_revise(gsc);
 }
 
 void check_tables(Sql.Sql sql)
@@ -132,8 +138,13 @@ void remove(string path)
   sql->query("DELETE FROM songs WHERE path=%s", path);  
   
   if(r && sizeof(r))
+  {
     foreach(r;;mapping row)
-      removals += ({(int)row->id});
+    {
+      werror(" - entry %d was in db.\n", (int)row->id);
+      remove_queue->write((int)row->id);
+    }
+  }
 }
 
 void add(mapping ent)
@@ -159,7 +170,7 @@ void process_change_queue()
   
   if(in_processing_changes) return;
   in_processing_changes = 1;
-werror("flushing changes to db\n");
+  werror("flushing changes to db\n");
   while(!change_queue->is_empty())
   {
      mapping ent = change_queue->read();
@@ -174,16 +185,18 @@ werror("flushing changes to db\n");
      write_entry_to_db(sql, ent);
      had_changes++;
   }
-  if(sizeof(removals))
+  while(!remove_queue->is_empty())
   {
-    revision_removals[gsc+1] = removals;
-    removals = ({});
+    array r = ({});
+      r += ({remove_queue->read()});
+    revision_removals[gsc+1] = r;
     had_changes++;
   }
   if(had_changes)
   {
     did_revise(gsc+1);
     gsc++;
+    had_changes = 0;
   }
   in_processing_changes = 0;
 }
@@ -228,11 +241,11 @@ void remove_stale_db_entries()
 
 void start_revision_checker()
 {
-  if(!change_queue->is_empty())
+  if(!change_queue->is_empty() || !remove_queue->is_empty())
   {
      process_change_queue();
   }
-  call_out(start_revision_checker, 30);
+  call_out(start_revision_checker, 60);
 }
 
 mapping get_song(int id)
@@ -278,15 +291,21 @@ int get_song_count()
   return (int)x[0]->c;
 }
 
-array get_songs()
+array get_songs(int|void reva, int|void revb)
 {
-/*
-  array x = allocate(get_song_count());
-  for(int i = 0 ; i < sizeof(x); i++)
-    x[i] = (["name": "song " + i, "id": i, "length": i*5]);
-  return x;
-*/
-  array x = sql->query("SELECT * FROM songs");
+  int min_rev = min(reva, revb);
+  int max_rev = max(reva, revb);
+
+  string query = "SELECT * FROM songs";
+  
+  if(max_rev)
+  {
+    query += " WHERE batch >= " + min_rev + " AND batch <= " + max_rev;
+  }
+
+  array x = sql->query(query);
+  
+  werror("fetched list of %d songs.\n", sizeof(x));
   return x;
 }
 
@@ -308,8 +327,6 @@ mapping playlists =  ([]);
 
 ]);
 */
-
-function did_revise = low_did_revise;
 
 void low_did_revise(int revision)
 {

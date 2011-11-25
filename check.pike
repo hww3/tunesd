@@ -197,8 +197,54 @@ class mon
 {
   inherit Filesystem.Monitor.symlinks;
 
+   ADT.Queue delete_queue = ADT.Queue();
+   ADT.Queue create_queue = ADT.Queue();
+   ADT.Queue exists_queue = ADT.Queue();
+   
    object db; 
    
+   Pike.Backend check_backend;
+   Pike.Backend process_backend;
+
+   int should_quit = 0;
+   
+   // our filesystem monitor uses 2 threads:
+   //   1 - a thread to run the actual filesystem check
+   //   2 - a thread to process the changes to the filesystem
+   //
+   //  1 exists in order to prevent the main thread from getting bogged
+   //  down when a large number of files exist to monitor and the second
+   //  thread is used to minimise the amount of time spent initializing 
+   //  the monitor, as the monitor won't see changes until it finishes 
+   //  flagging all existing files.
+   static void create(mixed ... args)
+   {
+     ::create(@args);
+    check_backend = Pike.Backend();
+    process_backend = Pike.Backend();
+    set_backend(check_backend);
+    Thread.Thread(run_check_thread);
+    Thread.Thread(run_process_thread);
+    set_nonblocking(3);
+  }
+   
+   void run_check_thread()
+   {
+     while(!should_quit)
+     {
+       check_backend(10.0);
+     }
+   }
+
+   void run_process_thread()
+   {
+     while(!should_quit)
+     {
+       sleep(10);
+       catch(m->process_entries());
+     }
+   }
+
   mapping read_id3(string path, object f)
   {
     mapping m;
@@ -222,24 +268,66 @@ class mon
     }
 
     m = map(m, lambda(mixed v){return (stringp(v)?String.trim_whites(v):v);});
-    if(m && m->genre) m->genre = id3_genres[m->genre];
-    
+
+    // genres seem to be either a string containing the genre name, an integer or an integer 
+    // surrounded by parens. we try to sort out this insanity here.
+    if(m && has_index(m, "genre")){
+ //     werror("genre: %O\n", m->genre);
+      int genre;
+      if(sscanf(m->genre, "%*[\(]%d)", genre))
+        m->genre = id3_genres[(int)m->genre] || "Unknown Genre";
+    }
     return m;
+  }
+  
+  void process_entries()
+  {
+    while(!delete_queue->is_empty())
+    {
+      low_file_deleted(@delete_queue->read());
+    }
+    
+    while(!exists_queue->is_empty())
+    {
+      low_file_exists(@exists_queue->read());      
+    }
+    
+    while(!create_queue->is_empty())
+    {
+      low_file_created(@create_queue->read());      
+    }
   }
 
   void file_deleted(string p, Stdio.Stat s)
+  {
+      delete_queue->write(({p, s}));
+  }
+  
+  void file_created(string p, Stdio.Stat s)
+  {
+    create_queue->write(({p, s}));
+    
+  }
+  
+  void file_exists(string p, Stdio.Stat s)
+  {
+    exists_queue->write(({p, s}));
+    
+  }
+  
+  void low_file_deleted(string p, Stdio.Stat s)
   {
     werror("file deleted: %O\n", p);
     db->remove(p);
   }
   
-  void file_created(string p, Stdio.Stat s)
+  void low_file_created(string p, Stdio.Stat s)
   {
     werror("file created: %O\n", p);
     file_exists(p, s);
   }
 
-  void file_exists(string p, Stdio.Stat s)
+  void low_file_exists(string p, Stdio.Stat s)
   {
     mapping atts = ([]);
     if(!s->isdir && s->isreg)
@@ -317,22 +405,7 @@ void check(string path, object db)
   m->db = db;
   m->monitor(path, Filesystem.Monitor.basic.MF_RECURSE);
   werror("registering music path " + path  + "\n");
-  check_backend = Pike.Backend();
-  m->set_backend(check_backend);
-  Thread.Thread(run_check_thread);
-  m->set_nonblocking(3);
 }
-
-void run_check_thread()
-{
-  while(!should_quit)
-  {
-    check_backend(5.0);
-  }
-}
-
-Pike.Backend check_backend;
-int should_quit = 0;
 
 int main()
 {
