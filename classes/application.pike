@@ -1,0 +1,2 @@
+
+inherit Fins.Application;

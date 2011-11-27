@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<project name="tunesd">
+ <baselang>eng</baselang>
+ <xmlpath>translations/%L/tunesd.xml</xmlpath>
+ <nocopy/>
+</project>
