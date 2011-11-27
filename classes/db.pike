@@ -115,7 +115,7 @@ void update_table(Sql.Sql sql, string table, array fields)
     
     if(!have_field)
     {
-      write("adding field " + f[0] + " to table " + table + "\n");
+      log->info("adding field " + f[0] + " to table " + table);
       sql->query("ALTER TABLE " + table + " ADD " + f[0] + " " + f[1]);
     }
   }
@@ -129,7 +129,7 @@ void create_table(Sql.Sql sql, string table, array fields)
     fs += ({f[0] + " " + f[1]});
     
   string q = "CREATE TABLE " + table + "(" + (fs*", ") + ")";
-werror("query: " + q + "\n");
+  log->info("query: " + q + "");
    sql->query(q);
 }
 
@@ -140,7 +140,7 @@ int table_exists(Sql.Sql sql, string table)
 
 void remove(string path)
 {
-  werror("removing stale entry for %s", path);
+  log->info("removing stale entry for %s", path);
   array r = sql->query("SELECT id FROM songs WHERE path=%s", path);
   sql->query("DELETE FROM songs WHERE path=%s", path);  
   
@@ -148,7 +148,7 @@ void remove(string path)
   {
     foreach(r;;mapping row)
     {
-      werror(" - entry %d was in db.\n", (int)row->id);
+      log->debug(" - entry %d was in db.", (int)row->id);
       remove_queue->write((int)row->id);
     }
   }
@@ -178,11 +178,11 @@ void process_change_queue()
   
   if(in_processing_changes) return;
   in_processing_changes = 1;
-  werror("flushing changes to db\n");
+  log->info("flushing changes to db\n");
   while(!change_queue->is_empty())
   {
      mapping ent = change_queue->read();
-     if(has_entry(sql, ent)) {werror("skipping %s\n", ent->path); continue; }
+     if(has_entry(sql, ent)) {log->debug("skipping %s", ent->path); continue; }
     // werror("adding " + ent->path + "\n");
      // ent->id = ++id;
      if(!ent->title) ent->title = basename(ent->path);
@@ -228,7 +228,7 @@ void write_entry_to_db(Sql.Sql sql, mapping entry)
       else
         vc += ({"%s"});
     }
-    string q = "INSERT INTO songs (" + (indices(entry)* ", ") + ") VALUES(" + (vc * ", ") + ")";
+    string q = "INSERT INTO songs (" + (indices(entry)* ", ") + ", added) VALUES(" + (vc * ", ") + ", 'now')";
 //werror(q + sprintf("%O\n", values(entry)));
     sql->query(q, @values(entry));
     //  werror("failed to write entry for %s: %O\n", entry->path, entry);
