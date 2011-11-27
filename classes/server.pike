@@ -1,3 +1,4 @@
+inherit Fins.Application;
 inherit "dmap";
 
 // the default music path if one isn't specified.
@@ -15,6 +16,7 @@ mapping locks = ([]);
 
 mapping sessions = ([]);
 int revision_num = 1;
+
 object db;
 object check = ((program)"check")();
 
@@ -26,32 +28,47 @@ int main(int argc, array(string) argv) {
   int my_port = default_port; 
   if(argc>2) my_port=(int)argv[2];
 
-  musicpath = argc>1?argv[1]:replace(MUSICPATH, "$HOME", getenv()["HOME"]);
 
   write("Music stored in " + musicpath + ".\n");
   write("FinServe starting on port " + my_port + "...\n");
 
-  startup();
+  start();
 
   port = Protocols.HTTP.Server.Port(handle_request, my_port); 
 
   bonjour = Protocols.DNS_SD.Service(db->get_name(),
                      "_daap._tcp", "", (int)my_port);
 
-  write("Advertising this application via Bonjour.\n");
+  log->info("Advertising this application via Bonjour.");
     
   return -1; 
 }
 
-void startup()
+void start()
 {
-  db = ((program)"db")(DBURL, server_did_revise);
-  check->check(musicpath, db);
+  musicpath = replace(config["music"]["path"], "$HOME", getenv()["HOME"]);
+  
+  // the db is actually loaded by fins into "model", but for the sake of code already written, we keep db as an alias.
+  db = model;
+  model->start();
+//  db = ((program)"db")(DBURL, server_did_revise);
+  call_out(register_bonjour, 1);
+  check->check(musicpath, model);
+}
+
+void register_bonjour()
+{
+  db = model;
+  bonjour = Protocols.DNS_SD.Service(db->get_name(),
+                   "_daap._tcp", "", (int)__fin_serve->my_port);
+
+  log->info("Advertising tunesd via Bonjour.");
+
 }
 
 void server_did_revise(int revision)
 {
-  werror("change recieved.\n");
+  log->debug("change recieved.");
   revision_num = revision;
   foreach(locks;mixed sessionid;object lock)
   {
@@ -62,7 +79,7 @@ void server_did_revise(int revision)
   }    
 }
 
-void handle_request(Protocols.HTTP.Server.Request request)
+mixed handle_http(Protocols.HTTP.Server.Request request)
 {
   array|mapping response;
 
@@ -107,7 +124,8 @@ werror("request: %O\n", request);
   if(response)
   {
 //    werror("response: %O\n", create_response(response, 200));
-    request->response_and_finish(create_response(response, 200));
+//    request->response_and_finish(create_response(response, 200));
+    return (create_response(response, 200)) + (["request": request]);
   }
 }
 
@@ -156,6 +174,8 @@ mapping stream_audio(object id, string dbid, int songid)
   object s = file_stat(song);
   werror("song file is %s: %O\n", song, s);
 
+  db->bump(songid);
+  
   if(song)
     return (["type": "audio/" + db->get_song(songid)["format"]/*"application/x-dmap-tagged"*/, "extra_heads": (["DAAP-Server": "tunesd/" + version]), "file": Stdio.File(song)]);  
   else 
@@ -271,7 +291,7 @@ array create_databases(object id)
 }
 
 //!
-array create_update(object id, int|void is_revised)
+array|mapping create_update(object id, int|void is_revised)
 {
   if(!locks[id->variables->sessionid||1] || is_revised)
   {
@@ -288,7 +308,8 @@ array create_update(object id, int|void is_revised)
   {
     werror("locking till change.\n");
     locks[id->variables->sessionid||1] = id;
-    return 0;
+    return (["_is_pipe_response": 1]);
+//    return 0;
   }
 }
 

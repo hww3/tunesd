@@ -1,9 +1,12 @@
+inherit Fins.FinsBase;
+
 int in_processing_changes = 0;
 int id = 100;
 int gsc = 0;
 
 string sql_url;
 Sql.Sql sql;
+object log = Tools.Logging.get_logger("model");
 
 function did_revise = low_did_revise;
 
@@ -27,6 +30,9 @@ constant songs_fields = ({
   ({"track", "string"}),
   ({"trackcount", "string"}),
   ({"comment", "string"}),
+  ({"added", "timestamp"}),
+  ({"playcount", "int"}),
+  ({"rating", "int"}),
   ({"batch", "int"}),
 });
 
@@ -42,10 +48,11 @@ constant playlist_members_fields = ({
 });
 
 mapping songs = ([]);
-  
-static void create(string sqldb, function server_did_revise)
+
+void start(/*string sqldb, function server_did_revise*/)
 {
-  did_revise = server_did_revise;
+  string sqldb = config["model"]["datasource"];
+  did_revise = app->server_did_revise;
   
   start_db(sqldb);  
   call_out(start_revision_checker, 10);  
@@ -54,7 +61,7 @@ static void create(string sqldb, function server_did_revise)
 
 void start_db(string sqlurl)
 {
-  werror("Starting DB...\n");
+  log->info("Starting DB...");
   sql_url = sqlurl;
   sql = Sql.Sql(sql_url);
   
@@ -71,7 +78,7 @@ void start_db(string sqlurl)
 
 void check_tables(Sql.Sql sql)
 {
-  werror("Checking tables...\n");
+  log->info("Checking tables...");
   process_table(sql, "songs", songs_fields);
   process_table(sql, "playlists", playlists_fields);
   process_table(sql, "playlist_members", playlist_members_fields);
@@ -149,6 +156,7 @@ void remove(string path)
 
 void add(mapping ent)
 {
+  log->debug("adding %O", ent);
   change_queue->write(ent);
 }
 
@@ -246,6 +254,11 @@ void start_revision_checker()
      process_change_queue();
   }
   call_out(start_revision_checker, 60);
+}
+
+void bump(int songid)
+{
+  sql->query("UPDATE songs SET playcount = playcount+1 WHERE id = %d", songid);
 }
 
 mapping get_song(int id)

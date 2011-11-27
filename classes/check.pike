@@ -1,5 +1,8 @@
 #charset utf8 
 
+object log = Tools.Logging.get_logger("scanner");
+
+
 constant id3v2_map = ([
     "TALB": "album",
     "TIT2": "title",
@@ -317,13 +320,13 @@ class mon
   
   void low_file_deleted(string p, Stdio.Stat s)
   {
-    werror("file deleted: %O\n", p);
+    log->debug("file deleted: %O", p);
     db->remove(p);
   }
   
   void low_file_created(string p, Stdio.Stat s)
   {
-    werror("file created: %O\n", p);
+    log->debug("file created: %O", p);
     file_exists(p, s);
   }
 
@@ -332,7 +335,7 @@ class mon
     mapping atts = ([]);
     if(!s->isdir && s->isreg)
     {
-   //   werror("file exists: %O\n", p);
+   //  werror("file exists: %O\n", p);
       mapping a;
       if(a = read_id3(p, s))
       {
@@ -404,7 +407,7 @@ void check(string path, object db)
   m = mon(Filesystem.Monitor.basic.MF_RECURSE);
   m->db = db;
   m->monitor(path, Filesystem.Monitor.basic.MF_RECURSE);
-  werror("registering music path " + path  + "\n");
+  log->info("registering music path " + path);
 }
 
 int main()
