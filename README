@@ -1,0 +1,46 @@
+tunesd is a media server for iTunes and Roku SoundBridge devices. The server 
+speaks the DAAP protocol that allows it to appear as a remote music library 
+in iTunes.
+
+In terms of goals, the aim is to provide a workable replacement for the now
+dormant Firefly media server software, with some of the more frustrating 
+behavior (for this author, at least) fixed. tunesd has the added benefit of 
+being written in a programming language that makes it far easier to keep up 
+to date as Apple makes changes to the (un-published) DAAP protocol.
+
+Features include:
+
+- support for MacOSX, Windows and most Unix platforms
+- can provide incremental updates to connected iTunes clients
+- automatically updates the music library as changes are made, no 
+  rescanning required
+- support for reading tags from MP3 and MPEG-4 files.
+
+Upcoming features:
+
+- authentication support
+- web interface
+- playlists
+- smart playlist creation
+
+Requirements:
+
+tunesd is written in Pike, so a copy of the Pike interpreter for your 
+platform is required. 
+
+Once the upcoming feature list above has been delivered, pre-built installers 
+will be provided, so stay tuned!
+
+The Pike website:
+
+http://pike.ida.liu.se
+
+The Author
+
+tunesd is written by Bill Welliver <bill at welliver dot org>. Please feel free to 
+get in touch with any questions or comments.
+
+The License
+
+A license (MPL? GPL? BSD?) hasn't been settled on just yet, so please don't 
+pass copies around until we get that figured out. 

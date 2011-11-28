@@ -82,8 +82,8 @@ void server_did_revise(int revision)
 mixed handle_http(Protocols.HTTP.Server.Request request)
 {
   array|mapping response;
-
- // werror("request: %O\n", request);
+  
+  werror("request: %O\n", request);
   if(has_prefix(request->not_query, "daap://"))
   {
    // werror("rewriting...");
@@ -127,6 +127,10 @@ werror("request: %O\n", request);
 //    request->response_and_finish(create_response(response, 200));
     return (create_response(response, 200)) + (["request": request]);
   }
+  
+  response = ::handle_http(request);
+  
+  if(response) return response;
 }
 
 array|mapping handle_sub_request(object request)
@@ -161,8 +165,9 @@ array|mapping handle_sub_request(object request)
     }
     else
     {
-      werror("yikes! a request we don't understand: %O\n", request);
-      return (["error": 500, "data": "we don't know how to handle " + request->not_query + "!"]);
+//      werror("yikes! a request we don't understand: %O\n", request);
+//      return (["error": 500, "data": "we don't know how to handle " + request->not_query + "!"]);
+      return 0;
     }
 }
 
