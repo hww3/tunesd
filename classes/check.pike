@@ -206,9 +206,6 @@ class mon
    
    object db; 
    
-   Pike.Backend check_backend;
-   Pike.Backend process_backend;
-
    int should_quit = 0;
    
    // our filesystem monitor uses 2 threads:
@@ -223,22 +220,10 @@ class mon
    static void create(mixed ... args)
    {
      ::create(@args);
-    check_backend = Pike.Backend();
-    process_backend = Pike.Backend();
-    set_backend(check_backend);
-    Thread.Thread(run_check_thread);
     Thread.Thread(run_process_thread);
     set_nonblocking(3);
   }
    
-   void run_check_thread()
-   {
-     while(!should_quit)
-     {
-       check_backend(10.0);
-     }
-   }
-
    void run_process_thread()
    {
      while(!should_quit)
@@ -335,7 +320,7 @@ class mon
     mapping atts = ([]);
     if(!s->isdir && s->isreg)
     {
-//     werror("file exists: %O\n", p);
+     werror("file exists: %O\n", p);
       mapping a;
       if(a = read_id3(p, s))
       {
@@ -408,13 +393,14 @@ void check(string path, object db)
   m->db = db;
   m->monitor(path, FS.Monitor.basic.MF_RECURSE);
   log->info("registering music path " + path);
+  call_out(m->check, 5.0);
 }
 
 int main()
 {
   m = mon(FS.Monitor.basic.MF_RECURSE);
-  m->monitor("/Users/hww3/Music/iTunes/iTunes Media/Music", FS.Monitor.basic.MF_RECURSE);
-  m->set_nonblocking();
+//  m->monitor("/Users/hww3/Music/iTunes/iTunes Media/Music", FS.Monitor.basic.MF_RECURSE);
+//  m->set_nonblocking();
 
   return -1;  
 }

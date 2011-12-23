@@ -10,9 +10,13 @@ FSEvents.EventStream eventstream = FSEvents.EventStream(({}), 3.0, FSEvents.kFSE
   array eventstream_paths = ({});
   void eventstream_callback(string path, int flags, int event_id)
   {
-    werror("f!\n");
-    if(monitors[path]) werror("have a monitor for %O!\n", path);
-    check(0);
+    if(path[-1] == '/') path = path[0..<1];
+    if(monitors[path])
+    {
+//      werror("have a monitor for %O!\n", path);
+      monitors[path]->check(0);
+    }
+    else check(0);
   }
 #endif
 
@@ -199,6 +203,7 @@ protected class Monitor(string path,
   void create()
   {
 #if HAVE_EVENTSTREAM
+werror("***** eventstream\n");
     int already_added = 0;
     foreach(eventstream_paths;;string p)
     {
@@ -511,7 +516,7 @@ protected class Monitor(string path,
   //!   @[file_deleted()], @[stable_data_change()]
   int(0..1) check(MonitorFlags|void flags)
   {
-    // werror("Checking monitor %O...\n", this);
+     werror("Checking monitor %O...\n", this);
     Stdio.Stat st = file_stat(path, 1);
     Stdio.Stat old_st = this_program::st;
     int orig_flags = this_program::flags;
@@ -691,7 +696,6 @@ protected void create(int|void max_dir_check_interval,
 		      int|void stable_time)
 {
 #if HAVE_EVENTSTREAM
-  FSEvents.add_backend_runloop();         
   eventstream->callback_func = eventstream_callback;
 #endif  
   
@@ -808,6 +812,7 @@ void monitor(string path, MonitorFlags|void flags,
 	     int(0..)|void file_interval_factor,
 	     int(0..)|void stable_time)
 {
+werror("monitor\n");
   path = canonic_path(path);
   Monitor m = monitors[path];
   if (m) {
@@ -967,6 +972,7 @@ protected int(0..1) check_monitor(Monitor m, MonitorFlags|void flags)
 int check(int|void max_wait, int|void max_cnt,
 	  mapping(string:int)|void ret_stats)
 {
+werror("check\n");
   int scan_cnt = max_cnt;
   int scan_wait = max_wait;
   while(1) {
@@ -1040,6 +1046,7 @@ void set_backend(Pike.Backend|void backend)
 //!   @[set_nonblocking()]
 void set_blocking()
 {
+werror("blocking\n");
   if (co_id) {
     if (backend) backend->remove_call_out(co_id);
     else remove_call_out(co_id);
@@ -1097,8 +1104,8 @@ void set_nonblocking(int|void t)
     if (t > max_dir_check_interval) t = max_dir_check_interval;
     if (t < 0) t = 0;
   }
-  if (backend) co_id = backend->call_out(backend_check, t);
-  else co_id = call_out(backend_check, t);
+//  if (backend) co_id = backend->call_out(backend_check, t);
+//  else co_id = call_out(backend_check, t);
 }
 
 //! Set the @[default_max_dir_check_interval].
