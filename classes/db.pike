@@ -18,7 +18,7 @@ ADT.Queue remove_queue = ADT.Queue();
 constant songs_fields = ({
   ({"id", "integer primary key"}),
   ({"title", "string not null"}),
-  ({"path", "string not null"}),
+  ({"path", "string not null unique"}),
 //  ({"hash", "string not null"}),
   ({"artist", "string"}),
   ({"album", "string"}),
@@ -156,7 +156,7 @@ void remove(string path)
 
 void add(mapping ent)
 {
-  log->debug("adding %O", ent);
+//  log->debug("adding %O", ent);
   change_queue->write(ent);
 }
 
@@ -179,19 +179,31 @@ void process_change_queue()
   if(in_processing_changes) return;
   in_processing_changes = 1;
   log->info("flushing changes to db\n");
+  array checks = ({});
+
+  sql->query("BEGIN TRANSACTION");
+
   while(!change_queue->is_empty())
   {
      mapping ent = change_queue->read();
-     if(has_entry(sql, ent)) {log->debug("skipping %s", ent->path); continue; }
-    // werror("adding " + ent->path + "\n");
-     // ent->id = ++id;
-     if(!ent->title) ent->title = basename(ent->path);
-     ent->format = lower_case((ent->path/".")[-1] || "mp3");
-   //  ent->hash = String.string2hex(Crypto.MD5()->hash(Stdio.read_file(ent->path)));
-   //  songs[ent->id] = ent;
-     ent->batch = gsc+1;
-     write_entry_to_db(sql, ent);
-     had_changes++;
+     checks += ({ent});
+     if(sizeof(checks) >= 10 || change_queue->is_empty())
+     {
+       checks = has_entry(sql, checks);
+       foreach(checks;; ent)
+       {
+         werror("adding " + ent->path + "\n");
+         // ent->id = ++id;
+         if(!ent->title) ent->title = basename(ent->path);
+         ent->format = lower_case((ent->path/".")[-1] || "mp3");
+       //  ent->hash = String.string2hex(Crypto.MD5()->hash(Stdio.read_file(ent->path)));
+       //  songs[ent->id] = ent;
+         ent->batch = gsc+1;
+         write_entry_to_db(sql, ent);
+         had_changes++;
+       }
+      checks = ({});
+    }
   }
   while(!remove_queue->is_empty())
   {
@@ -206,31 +218,59 @@ void process_change_queue()
     gsc++;
     had_changes = 0;
   }
+  sql->query("COMMIT");
   in_processing_changes = 0;
 }
 
-int has_entry(Sql.Sql sql, mapping entry)
-{
-  array a = sql->query("select * from songs where path = %s", entry->path);  
-  if(sizeof(a)) return 1;
-  else return 0;
+array has_entry(Sql.Sql sql, array(mapping) entry)
+{ 
+  array paths = ({});
+
+  foreach(entry;;mapping e)
+  {
+    paths += ({ "'" + sql->quote(e->path) + "'" });
+  }
+
+//  werror("query: %O\n", query);
+  array a = sql->query("select path from songs where path IN(" + ( paths * "," ) + ")");
+
+  if(sizeof(a) == sizeof(entry)) return ({});
+
+  array res  = ({});
+
+  foreach(entry;;mapping e)
+  {
+    int hadit = 0;
+    foreach(a;; mapping row)
+    {
+//werror("%O, %O\n", e->path, row->path);
+      if(e->path == row->path)
+      {
+        hadit++;
+        break;
+      }
+    }
+    if(!hadit) res += ({e});
+//    else werror("disqualifying " + e->path + "\n");
+  }
+  return res;
 }
 
 void write_entry_to_db(Sql.Sql sql, mapping entry)
 {
-  
     array vc = ({});
     foreach(entry; string key; mixed val)
     {
    //   if(!val) m_delete(entry, key);
       if(intp(val))
-        vc += ({"%d"});
+        vc += ({(string)val});
       else
-        vc += ({"%s"});
+        vc += ({"'"  + sql->quote(val) + "'"});
     }
     string q = "INSERT INTO songs (" + (indices(entry)* ", ") + ", added) VALUES(" + (vc * ", ") + ", 'now')";
+//werror("QUERY: %O\n", q);
 //werror(q + sprintf("%O\n", values(entry)));
-    sql->query(q, @values(entry));
+    sql->query(q /*, @values(entry)*/);
     //  werror("failed to write entry for %s: %O\n", entry->path, entry);
 }
 

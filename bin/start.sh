@@ -9,4 +9,4 @@
   fi
 
   cd `dirname $0`/../..
-  exec pike $PIKE_ARGS -x fins start tunesd $*
+  exec pike $PIKE_ARGS -x fins start tunesd-new $*

@@ -47,7 +47,7 @@ int main(int argc, array(string) argv) {
 void start()
 {
   musicpath = replace(config["music"]["path"], "$HOME", getenv()["HOME"]);
-  
+werror("********\n*******\n");  
   // the db is actually loaded by fins into "model", but for the sake of code already written, we keep db as an alias.
   db = model;
   model->start();
@@ -60,9 +60,10 @@ void register_bonjour()
 {
   db = model;
   bonjour = Protocols.DNS_SD.Service(db->get_name(),
+//                   "_daap._tcp", "", (int)8001);
                    "_daap._tcp", "", (int)__fin_serve->my_port);
 
-  log->info("Advertising tunesd via Bonjour.");
+  log->info("Advertising tunesd/DAAP via Bonjour.");
 
 }
 

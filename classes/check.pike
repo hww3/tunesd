@@ -299,6 +299,7 @@ class mon
   
   void file_exists(string p, Stdio.Stat s)
   {
+log->debug("adding file %s", p);
     exists_queue->write(({p, s}));
     
   }
