@@ -265,9 +265,30 @@ class mon
       if(sscanf(m->genre, "%*[\(]%d)", genre))
         m->genre = id3_genres[(int)m->genre] || "Unknown Genre";
     }
+
+    if(!m->length)
+      m->length = get_mp3_length(path);
     return m;
   }
-  
+
+int get_mp3_length(string filename)
+{
+  mapping d;
+  object o = Audio.Format.MP3();
+
+  float len = 0.0;
+  o->read_file(filename);
+  while(d = o->get_frame())
+  {
+   int frame_size;
+   if(d->layer == 1) frame_size = 384;
+   else frame_size = 1152;
+   len += (float)frame_size/(float)d->sampling;
+  }
+
+  return (int)(len * 1000);
+}  
+
   void process_entries()
   {
     while(!delete_queue->is_empty())
