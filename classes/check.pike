@@ -266,10 +266,78 @@ class mon
         m->genre = id3_genres[(int)m->genre] || "Unknown Genre";
     }
 
-    if(!m->length)
-      m->length = get_mp3_length(path);
     return m;
   }
+
+// if the file doesn't have a play length in its tags,
+// we can use ffmpeg, if it's available.
+// ffmpeg -i 
+// alternately, we can use get_mp3_length, but it's slow.
+// on osx, there's afinfo, too.
+int use_ffmpeg;
+int use afinfo;
+int length_method_checked;
+int get_length(string filename, int ismp3)
+{
+  if(!length_method_checked)
+  {
+    string p;
+    p = System.popen("which afinfo");
+    if(sizeof(p)) 
+      use_afinfo = 1;
+    else
+    {
+      p = System.popen("which afinfo");
+      if(sizeof(p))
+        use_ffmpeg = 1;
+    }
+    length_method_checked = 1;
+  }
+
+  if(use_afinfo)
+  { 
+    get_afinfo_length(filename);
+  }
+  else if(use_ffmpeg)
+  {
+    get_ffmpeg_length(filename);
+  }
+  else if(ismp3)
+  {
+    return get_mp3_length(filename);
+  }
+  else return 0;
+ 
+}
+
+int get_ffmpeg_length(string filename)
+{
+  string len;
+  string output = System.popen("ffmpeg -i \"" + filename + "\"");
+  if(!sizeof(output)) return 0;
+
+  sscanf(output, "%*sDuration: %s,%*s", len);
+  int h,m;
+  float s;
+  sscanf(len, "%d:%d:%f", h,m,s);
+
+  int ms = (int)(((h*3600) + (m*60) + s) * 1000);
+
+  return ms;
+}
+
+int get_afinfo_length(string filename)
+{
+  float len;
+  string output = System.popen("afinfo \"" + filename + "\"");
+  if(!sizeof(output)) return 0;
+
+  sscanf(output, "%*suration: %f sec", len);
+
+  int ms = (int)(len * 1000);
+
+  return ms;
+}
 
 int get_mp3_length(string filename)
 {
@@ -348,6 +416,7 @@ log->debug("adding file %s", p);
       if(a = read_id3(p, s))
       {
         atts = atts + a;
+	if(!atts->length) atts->length = get_length(p, 1);
      //   werror("got id3: %O\n", a);
       }
       else if(a = read_atoms(p, s))
@@ -370,6 +439,7 @@ log->debug("adding file %s", p);
       
       if(sizeof(atts))
       {  
+	if(!atts->length) atts->length = get_length(p, 0);
         if(atts->track && stringp(atts->track))
         {
           int tracknum, trackcount;
@@ -388,12 +458,6 @@ log->debug("adding file %s", p);
       //  werror("metadata: %O\n", atts);
       }
     }
-
-// if the file doesn't have a play length in its tags,
-// we can use ffmpeg, if it's available.
-// ffmpeg -i 
-// alternately, we can use get_mp3_length, but it's slow.
-// on osx, there's afinfo, too.
 
     if(sizeof(atts))
     {
