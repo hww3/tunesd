@@ -275,19 +275,19 @@ class mon
 // alternately, we can use get_mp3_length, but it's slow.
 // on osx, there's afinfo, too.
 int use_ffmpeg;
-int use afinfo;
+int use_afinfo;
 int length_method_checked;
 int get_length(string filename, int ismp3)
 {
   if(!length_method_checked)
   {
     string p;
-    p = System.popen("which afinfo");
+    p = Process.popen("which afinfo");
     if(sizeof(p)) 
       use_afinfo = 1;
     else
     {
-      p = System.popen("which afinfo");
+      p = Process.popen("which ffmpeg");
       if(sizeof(p))
         use_ffmpeg = 1;
     }
@@ -296,11 +296,11 @@ int get_length(string filename, int ismp3)
 
   if(use_afinfo)
   { 
-    get_afinfo_length(filename);
+    return get_afinfo_length(filename);
   }
   else if(use_ffmpeg)
   {
-    get_ffmpeg_length(filename);
+    return get_ffmpeg_length(filename);
   }
   else if(ismp3)
   {
@@ -313,23 +313,27 @@ int get_length(string filename, int ismp3)
 int get_ffmpeg_length(string filename)
 {
   string len;
-  string output = System.popen("ffmpeg -i \"" + filename + "\"");
-  if(!sizeof(output)) return 0;
-
+  Stdio.File stdin = Stdio.File();
+  object si = stdin->pipe();
+  Stdio.File stderr = Stdio.File();
+  object se = stderr->pipe();
+  int o = Process.system("ffmpeg -i \"" + filename + "\"", 0, si, se);
+  string output = stderr->read(1000,1);
+  //output += stdin->read();
   sscanf(output, "%*sDuration: %s,%*s", len);
   int h,m;
   float s;
   sscanf(len, "%d:%d:%f", h,m,s);
 
   int ms = (int)(((h*3600) + (m*60) + s) * 1000);
-
+// werror("=> %d\n", ms);
   return ms;
 }
 
 int get_afinfo_length(string filename)
 {
   float len;
-  string output = System.popen("afinfo \"" + filename + "\"");
+  string output = Process.popen("afinfo \"" + filename + "\"");
   if(!sizeof(output)) return 0;
 
   sscanf(output, "%*suration: %f sec", len);

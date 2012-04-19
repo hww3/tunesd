@@ -35,10 +35,10 @@ int main(int argc, array(string) argv) {
   start();
 
   port = Protocols.HTTP.Server.Port(handle_request, my_port); 
-
+/*
   bonjour = Protocols.DNS_SD.Service(db->get_name(),
                      "_daap._tcp", "", (int)my_port);
-
+*/
   log->info("Advertising this application via Bonjour.");
     
   return -1; 
@@ -62,9 +62,9 @@ void register_bonjour()
 
 // we might also use avahi:
 // avahi-publish -s tunesd _daap._tcp 3689
-  bonjour = Protocols.DNS_SD.Service(db->get_name(),
-//                   "_daap._tcp", "", (int)8001);
-                   "_daap._tcp", "", (int)__fin_serve->my_port);
+//  bonjour = Protocols.DNS_SD.Service(db->get_name(),
+////                   "_daap._tcp", "", (int)8001);
+//                   "_daap._tcp", "", (int)__fin_serve->my_port);
 
   log->info("Advertising tunesd/DAAP via Bonjour.");
 
