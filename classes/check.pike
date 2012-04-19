@@ -275,7 +275,7 @@ int get_mp3_length(string filename)
 {
   mapping d;
   object o = Audio.Format.MP3();
-
+  werror("getting length for %O", filename);
   float len = 0.0;
   o->read_file(filename);
   while(d = o->get_frame())
@@ -286,6 +286,7 @@ int get_mp3_length(string filename)
    len += (float)frame_size/(float)d->sampling;
   }
 
+  werror(" => %d\n", ((int)len*1000));
   return (int)(len * 1000);
 }  
 

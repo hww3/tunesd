@@ -59,6 +59,9 @@ werror("********\n*******\n");
 void register_bonjour()
 {
   db = model;
+
+// we might also use avahi:
+// avahi-publish -s tunesd _daap._tcp 3689
   bonjour = Protocols.DNS_SD.Service(db->get_name(),
 //                   "_daap._tcp", "", (int)8001);
                    "_daap._tcp", "", (int)__fin_serve->my_port);
