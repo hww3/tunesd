@@ -1,9 +1,6 @@
 inherit Fins.Application;
 inherit "dmap";
 
-// the default music path if one isn't specified.
-#define MUSICPATH "$HOME/Music/iTunes/iTunes Media/Music"
-
 // the default network port to listen on if one isn't specified.
 #define SERVERPORT 3689
 
@@ -96,7 +93,7 @@ void register_bonjour()
 
 void server_did_revise(int revision)
 {
-  log->debug("change recieved.");
+  log->debug("change received.");
   revision_num = revision;
   foreach(locks;mixed sessionid;object lock)
   {
