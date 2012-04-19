@@ -178,7 +178,7 @@ void process_change_queue()
   
   if(in_processing_changes) return;
   in_processing_changes = 1;
-  log->info("flushing changes to db\n");
+  log->info("flushing changes to db");
   array checks = ({});
 
   sql->query("BEGIN TRANSACTION");

@@ -910,7 +910,7 @@ int filter_file(string path)
 {
   array x = path/"/";
   foreach(x;; string pc)
-    if(pc && strlen(pc) && pc[0]=='.') { werror("skipping %O\n", path); return 1; }
+    if(pc && strlen(pc) && pc[0]=='.') {/* werror("skipping %O\n", path); */ return 1; }
     
   return 0;
 }
@@ -1048,7 +1048,7 @@ protected int(0..1) check_monitor(Monitor m, MonitorFlags|void flags)
 int check(int|void max_wait, int|void max_cnt,
 	  mapping(string:int)|void ret_stats)
 {
-werror("check\n");
+//werror("check\n");
   int scan_cnt = max_cnt;
   int scan_wait = max_wait;
   while(1) {

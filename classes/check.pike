@@ -417,7 +417,7 @@ log->debug("adding file %s", p);
     mapping atts = ([]);
     if(!s->isdir && s->isreg)
     {
-     werror("file exists: %O\n", p);
+//     werror("file exists: %O\n", p);
       mapping a;
       if(a = read_id3(p, s))
       {
