@@ -28,6 +28,10 @@ Requirements:
 tunesd is written in Pike, so a copy of the Pike interpreter for your 
 platform is required. 
 
+Play-time calculation for non-MP3 audio files that are not tagged with
+play-length information is provided using ffmpeg. Note: MacOS X includes a 
+tool that will automatically be used on that platform.
+
 Once the upcoming feature list above has been delivered, pre-built installers 
 will be provided, so stay tuned!
 
