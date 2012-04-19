@@ -388,6 +388,13 @@ log->debug("adding file %s", p);
       //  werror("metadata: %O\n", atts);
       }
     }
+
+// if the file doesn't have a play length in its tags,
+// we can use ffmpeg, if it's available.
+// ffmpeg -i 
+// alternately, we can use get_mp3_length, but it's slow.
+// on osx, there's afinfo, too.
+
     if(sizeof(atts))
     {
       atts["path"] = p;
