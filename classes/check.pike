@@ -318,7 +318,7 @@ int get_ffmpeg_length(string filename)
   Stdio.File stderr = Stdio.File();
   object se = stderr->pipe();
   int o = Process.system("ffmpeg -i \"" + filename + "\"", 0, si, se);
-  string output = stderr->read(1000,1);
+  string output = stderr->read(1000, 1);
   //output += stdin->read();
   sscanf(output, "%*sDuration: %s,%*s", len);
   int h,m;
@@ -333,10 +333,16 @@ int get_ffmpeg_length(string filename)
 int get_afinfo_length(string filename)
 {
   float len;
-  string output = Process.popen("afinfo \"" + filename + "\"");
-  if(!sizeof(output)) return 0;
+  Stdio.File stdin = Stdio.File();
+  object si = stdin->pipe();
+  Stdio.File stderr = Stdio.File();
+  object se = stderr->pipe();
+  int o = Process.system("afinfo \"" + filename + "\"", 0, si, se);
+  string output = stderr->read(1000, 1);
+  output += stdin->read(1000, 1);
 
-  sscanf(output, "%*suration: %f sec", len);
+  if(!sizeof(output)) return 0;
+  sscanf(output, "%*uration: %f sec", len);
 
   int ms = (int)(len * 1000);
 
