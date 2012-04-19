@@ -1,5 +1,7 @@
 #charset utf8 
 
+inherit Fins.FinsBase;
+
 object log = Tools.Logging.get_logger("scanner");
 
 
@@ -281,16 +283,10 @@ int get_length(string filename, int ismp3)
 {
   if(!length_method_checked)
   {
-    string p;
-    p = Process.popen("which afinfo");
-    if(sizeof(p)) 
-      use_afinfo = 1;
-    else
-    {
-      p = Process.popen("which ffmpeg");
-      if(sizeof(p))
-        use_ffmpeg = 1;
-    }
+    use_afinfo = app->have_command("afinfo");
+    use_ffmpeg = app->have_command("ffmpeg");;
+    if(use_afinfo) log->info("Using afinfo for playtime extraction.");
+    if(use_ffmpeg) log->info("Using ffmpeg for playtime extraction.");
     length_method_checked = 1;
   }
 

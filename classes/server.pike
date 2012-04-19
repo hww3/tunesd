@@ -18,31 +18,11 @@ mapping sessions = ([]);
 int revision_num = 1;
 
 object db;
-object check = ((program)"check")();
+object check = ((program)"check")(this);
 
 object port;
 int default_port = SERVERPORT;
-Protocols.DNS_SD.Service bonjour;
-
-int main(int argc, array(string) argv) { 
-  int my_port = default_port; 
-  if(argc>2) my_port=(int)argv[2];
-
-
-  write("Music stored in " + musicpath + ".\n");
-  write("FinServe starting on port " + my_port + "...\n");
-
-  start();
-
-  port = Protocols.HTTP.Server.Port(handle_request, my_port); 
-/*
-  bonjour = Protocols.DNS_SD.Service(db->get_name(),
-                     "_daap._tcp", "", (int)my_port);
-*/
-  log->info("Advertising this application via Bonjour.");
-    
-  return -1; 
-}
+Protocols.DNS_SD.Service|object bonjour;
 
 void start()
 {
@@ -51,22 +31,66 @@ werror("********\n*******\n");
   // the db is actually loaded by fins into "model", but for the sake of code already written, we keep db as an alias.
   db = model;
   model->start();
-//  db = ((program)"db")(DBURL, server_did_revise);
   call_out(register_bonjour, 1);
   check->check(musicpath, model);
+}
+
+// TODO: make this work on windows?
+int have_command(string command)
+{
+  string p;
+  p = Process.popen("which " + command);
+  return sizeof(p);    
 }
 
 void register_bonjour()
 {
   db = model;
 
-// we might also use avahi:
-// avahi-publish -s tunesd _daap._tcp 3689
-//  bonjour = Protocols.DNS_SD.Service(db->get_name(),
-////                   "_daap._tcp", "", (int)8001);
-//                   "_daap._tcp", "", (int)__fin_serve->my_port);
-
-  log->info("Advertising tunesd/DAAP via Bonjour.");
+  // TODO: we should add a process-end callback to restart the registration
+  // if avahi-publish* die for some reason.
+  if(have_command("avahi-publish"))
+  {
+    array command = ({"avahi-publish", "-s"});
+    command += ({db->get_name()});
+    command += ({"_daap._tcp"});
+    command += ({(string)__fin_serve->my_port});
+    bonjour = Process.create_process(command);
+    sleep(0.5);
+    if(bonjour->status() != 0)
+    {
+      throw(Error.Generic("Unable to register service using avahi-publish.\n"));
+    }
+    log->info("Advertising tunesd/DAAP via Bonjour (using avahi-publish).");
+  }
+  else if(have_command("avahi-publish-service"))
+  {
+    array command = ({"avahi-publish-service"});
+    command += ({db->get_name()});
+    command += ({"_daap._tcp"});
+    command += ({(string)__fin_serve->my_port});
+    bonjour = Process.create_process(command);
+    sleep(0.5);
+    if(bonjour->status() != 0)
+    {
+      throw(Error.Generic("Unable to register service using avahi-publish-service.\n"));
+    }
+    log->info("Advertising tunesd/DAAP via Bonjour (using avahi-publish-service).");
+  }
+#if constant(_Protocols_DNS_SD)
+#if constant(Protocols.DNS_SD.Service);
+  else if(1)
+  {
+    log->info("Advertising tunesd/DAAP via Bonjour.");
+    bonjour = Protocols.DNS_SD.Service(db->get_name(),
+                   "_daap._tcp", "", (int)__fin_serve->my_port);
+  }
+#endif
+#endif
+  else
+  {
+    throw(Error.Generic("You must have a Bonjour/Avahi installation in order to run this application.\n"));
+  }
 
 }
 
