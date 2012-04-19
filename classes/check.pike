@@ -342,7 +342,7 @@ int get_afinfo_length(string filename)
   output += stdin->read(1000, 1);
 
   if(!sizeof(output)) return 0;
-  sscanf(output, "%*uration: %f sec", len);
+  sscanf(output, "%*suration: %f sec", len);
 
   int ms = (int)(len * 1000);
 
