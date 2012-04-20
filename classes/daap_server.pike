@@ -106,9 +106,9 @@ mapping stream_audio(object id, string dbid, int songid)
   app->db->bump(songid);
   
   if(song)
-    return (["type": "audio/" + app->db->get_song(songid)["format"]/*"application/x-dmap-tagged"*/, "extra_heads": (["DAAP-Server": "tunesd/" + version]), "file": Stdio.File(song)]);  
+    return (["type": "audio/" + app->db->get_song(songid)["format"]/*"application/x-dmap-tagged"*/, "extra_heads": (["DAAP-Server": "tunesd/" + app->version]), "file": Stdio.File(song)]);  
   else 
-    return (["type": "text/plain", "error": 404, "extra_heads": (["DAAP-Server": "tunesd/" + version]),  "data": "song not found."]);
+    return (["type": "text/plain", "error": 404, "extra_heads": (["DAAP-Server": "tunesd/" + app->version]),  "data": "song not found."]);
 }
 
 mapping auth_required(string realm)
@@ -120,8 +120,8 @@ mapping auth_required(string realm)
   string data = "authentication required.";
   hauth["WWW-Authenticate"] = "Basic realm=\"webserver\"";
   
-  return (["server": "tunesd/" + version, "type": type, 
-    "extra_heads": (["Accept-Ranges": "bytes", "DAAP-Server": "tunesd/" + version]) + hauth, 
+  return (["server": "tunesd/" + app->version, "type": type, 
+    "extra_heads": (["Accept-Ranges": "bytes", "DAAP-Server": "tunesd/" + app->version]) + hauth, 
     "error": code, "data": data]);
 }
 mapping create_response(array|mapping data, int code)
@@ -129,8 +129,8 @@ mapping create_response(array|mapping data, int code)
   if(mappingp(data)) 
     return data;
   else  
-    return (["server": "tunesd/" + version, "type": "application/x-dmap-tagged", 
-      "extra_heads": (["Accept-Ranges": "bytes", "DAAP-Server": "tunesd/" + version]), 
+    return (["server": "tunesd/" + app->version, "type": "application/x-dmap-tagged", 
+      "extra_heads": (["Accept-Ranges": "bytes", "DAAP-Server": "tunesd/" + app->version]), 
       "error": code, "data": encode_dmap(data)]);
 }
 
