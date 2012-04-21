@@ -394,6 +394,8 @@ array generate_song_list(object id)
               ({"daap.songgenre", song["genre"]||"Unknown"}),
               ({"daap.songyear", ((int)song["year"]) || 0}),
               ({"daap.songtime", ((int)song["length"] || 0)}),
+              ({"daap.songsize", ((int)song["size"] || 0)}),
+              ({"daap.songdatemodified", ((int)song["modified"] || 0)}),
               ({"daap.songformat", song["format"]}),
               ({"daap.songdatakind", 0})
            })

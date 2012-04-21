@@ -468,6 +468,8 @@ log->debug("adding file %s", p);
     if(sizeof(atts))
     {
       atts["path"] = p;
+      atts["size"] = file_stat(p)->size;
+      atts["modified"] = file_stat(p)->mtime;
       if(db) 
         db->add(atts);      
     }

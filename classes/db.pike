@@ -25,6 +25,8 @@ constant songs_fields = ({
   ({"composer", "string"}),
   ({"genre", "string"}),
   ({"length", "integer"}),
+  ({"size", "integer"}),
+  ({"modified", "integer"}),
   ({"year", "string"}),
   ({"format", "string"}),
   ({"track", "string"}),
