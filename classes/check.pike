@@ -374,19 +374,19 @@ int get_mp3_length(string filename)
 	
     while(!delete_queue->is_empty())
     {
-werror("pulling from delete queue.\n");
+//werror("pulling from delete queue.\n");
       low_file_deleted(@delete_queue->read());
     }
     
     while(!exists_queue->is_empty())
     {
-	werror("pulling from exists queue.\n");
+//	werror("pulling from exists queue.\n");
       low_file_exists(@exists_queue->read());      
     }
     
     while(!create_queue->is_empty())
     {
-	werror("pulling from create queue.\n");
+//	werror("pulling from create queue.\n");
       low_file_created(@create_queue->read());      
     }
   }
