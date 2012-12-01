@@ -17,6 +17,10 @@ void index(object id, object response, mixed ... args)
   v->add("request", req);
   v->add("controller", con);
   v->add("method", method);
-
+  v->add("create_queue", (array)app->check->m->create_queue);
+  v->add("exists_queue", (array)app->check->m->exists_queue);
+  v->add("delete_queue", (array)app->check->m->delete_queue);
+  v->add("history", values(app->check->m->history));
+  v->add("songcount", app->db->get_song_count());
   response->set_view(v);
 }

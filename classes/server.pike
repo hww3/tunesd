@@ -22,6 +22,8 @@ object port;
 int default_port = SERVERPORT;
 Protocols.DNS_SD.Service|object bonjour;
 
+object log = Tools.Logging.get_logger("fins.application");
+
 void start()
 {
   musicpath = replace(config["music"]["path"], "$HOME", getenv()["HOME"]);
@@ -44,7 +46,7 @@ int have_command(string command)
 void register_bonjour()
 {
   db = model;
-
+werror("app_runner: %O\n", app_runner->get_ports());
   // TODO: we should add a process-end callback to restart the registration
   // if avahi-publish* die for some reason.
   if(have_command("avahi-publish"))
@@ -52,7 +54,7 @@ void register_bonjour()
     array command = ({"avahi-publish", "-s"});
     command += ({db->get_name()});
     command += ({"_daap._tcp"});
-    command += ({(string)__fin_serve->my_port});
+    command += ({(string)app_runner->get_ports()[0]->portno});
     bonjour = Process.create_process(command);
     sleep(0.5);
     if(bonjour->status() != 0)
@@ -66,7 +68,7 @@ void register_bonjour()
     array command = ({"avahi-publish-service"});
     command += ({db->get_name()});
     command += ({"_daap._tcp"});
-    command += ({(string)__fin_serve->my_port});
+    command += ({(string)app_runner->get_ports()[0]->portno});
     bonjour = Process.create_process(command);
     sleep(0.5);
     if(bonjour->status() != 0)
@@ -81,7 +83,7 @@ void register_bonjour()
   {
     log->info("Advertising tunesd/DAAP via Bonjour.");
     bonjour = Protocols.DNS_SD.Service(db->get_name(),
-                   "_daap._tcp", "", (int)__fin_serve->my_port);
+                   "_daap._tcp", "", (int)app_runner->get_ports()[0]->portno);
   }
 #endif
 #endif

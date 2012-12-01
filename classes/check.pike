@@ -205,7 +205,7 @@ class mon
    ADT.Queue delete_queue = ADT.Queue();
    ADT.Queue create_queue = ADT.Queue();
    ADT.Queue exists_queue = ADT.Queue();
-   
+   ADT.History history = ADT.History(25);
    object db; 
    
    int should_quit = 0;
@@ -228,9 +228,11 @@ class mon
    
    void run_process_thread()
    {
+//werror("starting run_process_thread()\n");
      while(!should_quit)
      {
        sleep(10);
+//werror("running process_entries()\n");
        catch(m->process_entries());
      }
    }
@@ -328,7 +330,9 @@ int get_ffmpeg_length(string filename)
 
 int get_afinfo_length(string filename)
 {
+//	werror("reading length via afinfo...");
   float len;
+/*
   Stdio.File stdin = Stdio.File();
   object si = stdin->pipe();
   Stdio.File stderr = Stdio.File();
@@ -336,12 +340,13 @@ int get_afinfo_length(string filename)
   int o = Process.system("afinfo \"" + filename + "\"", 0, si, se);
   string output = stderr->read(1000, 1);
   output += stdin->read(1000, 1);
-
+*/
+  string output = Process.popen("afinfo \"" + filename + "\" 2>&1");
   if(!sizeof(output)) return 0;
   sscanf(output, "%*suration: %f sec", len);
 
   int ms = (int)(len * 1000);
-
+//werror("done.\n");
   return ms;
 }
 
@@ -366,18 +371,22 @@ int get_mp3_length(string filename)
 
   void process_entries()
   {
+	
     while(!delete_queue->is_empty())
     {
+werror("pulling from delete queue.\n");
       low_file_deleted(@delete_queue->read());
     }
     
     while(!exists_queue->is_empty())
     {
+	werror("pulling from exists queue.\n");
       low_file_exists(@exists_queue->read());      
     }
     
     while(!create_queue->is_empty())
     {
+	werror("pulling from create queue.\n");
       low_file_created(@create_queue->read());      
     }
   }
@@ -403,12 +412,14 @@ log->debug("adding file %s", p);
   void low_file_deleted(string p, Stdio.Stat s)
   {
     log->debug("file deleted: %O", p);
+    history->push(sprintf("file deleted: %O", p));
     db->remove(p);
   }
   
   void low_file_created(string p, Stdio.Stat s)
   {
     log->debug("file created: %O", p);
+    history->push(sprintf("file created: %O", p));
     file_exists(p, s);
   }
 
@@ -417,6 +428,7 @@ log->debug("adding file %s", p);
     mapping atts = ([]);
     if(!s->isdir && s->isreg)
     {
+	    history->push(sprintf("file updated: %O", p));
 //     werror("file exists: %O\n", p);
       mapping a;
       if(a = read_id3(p, s))
