@@ -316,7 +316,11 @@ array get_songs(int|void reva, int|void revb)
   int min_rev = min(reva, revb);
   int max_rev = max(reva, revb);
 
-  array x = songc->find((["batch": (["$bt": ({min_rev, max_rev}) ]) ]));
+  array x;
+  if(reva != UNDEFINED)
+    x = songc->find((["batch": (["$bt": ({min_rev, max_rev}) ]) ]));
+  else
+    x = songc->find(([]));
   
   werror("fetched list of %d songs between %d and %d.\n", sizeof(x), min_rev, max_rev);
   return x;

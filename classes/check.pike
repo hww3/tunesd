@@ -380,7 +380,7 @@ int get_mp3_length(string filename)
     
     while(!exists_queue->is_empty())
     {
-	werror("pulling from exists queue.\n");
+//	werror("pulling from exists queue.\n");
       low_file_exists(@exists_queue->read());      
     }
     
