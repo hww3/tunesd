@@ -62,6 +62,16 @@ void start(/*string sqldb, function server_did_revise*/)
   start_db(url);  
   call_out(start_revision_checker, 10);  
   call_out(remove_stale_db_entries, 125);  
+ 
+  playlists += ([
+   "40":
+    (["name": "MLibrary", "items": get_songs()[0..6], "id": 40, "persistentid": 40, "smart": 0])
+,
+"37":
+  (["name": "MLibrary2", "items": get_songs()[7..20], "id": 37, "persistentid": 37, "smart": 1])
+
+  ]);
+  
 }
 
 void start_db(string url)
@@ -238,6 +248,12 @@ array has_entry(object coll, array(mapping) entry)
 
 void write_entry_to_db(object coll, mapping entry)
 {
+  int max;
+  mixed res = songc->find(([]), 0, (["$fields": (["id": 1]), "$max": 1, "$orderby": (["id": -1])]));
+  if(res && sizeof(res))
+    max = res[0]->id + 1;
+  else max = 1;
+  entry->id = max;
   coll->save(entry);
 }
 
@@ -269,7 +285,7 @@ void bump(string songid)
 
 mapping get_song(string id)
 {
-  array x = songc->find((["_id": id]));
+  array x = songc->find((["id": id]));
   if(sizeof(x)) return x[0];
   else
     return 0;
@@ -336,14 +352,8 @@ mapping get_playlist(string plid)
   return playlists[plid];
 }
 
-mapping playlists =  ([]);
-/*
-([
- "40":
-  (["name": "MLibrary", "items": get_songs()[0..6], "id": 40, "persistent_id": 40, "smart": 0])
+mapping playlists = ([]);
 
-]);
-*/
 
 void low_did_revise(int revision)
 {

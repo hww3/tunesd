@@ -6,7 +6,7 @@ mixed handle_request(Protocols.HTTP.Server.Request request)
 {
   mixed response;
 
-  werror("request: %O\n", request);
+ // werror("request: %O\n", request);
   if(has_prefix(request->not_query, "daap://"))
   {
    // werror("rewriting...");
@@ -94,7 +94,7 @@ array|mapping handle_sub_request(object request)
       return 0;
     }
 }
-
+  
 mapping stream_audio(object id, string dbid, int songid)
 {
   // Protocols.HTTP.Server takes care of simple Range requests for us... how nice!
@@ -170,8 +170,8 @@ array create_containers(object id, string dbid)
      ({
         ({"dmap.status", 200}),
         ({"dmap.updatetype", 0}),
-        ({"dmap.specifiedtotalcount", get_playlist_count() + 1}),
-        ({"dmap.returnedcount", get_playlist_count() + 1}),
+        ({"dmap.specifiedtotalcount", get_playlist_count() + 2}),
+        ({"dmap.returnedcount", get_playlist_count() + 2}),
         ({"dmap.listing", 
               generate_playlist_list()
         }),
@@ -184,7 +184,8 @@ array create_container_items(object id, string dbid, string playlist_id)
 {
   mapping playlist = get_playlist(dbid, playlist_id);
   werror("playlist " + playlist_id + "\n");
-
+  if(!playlist) return ({});
+    
   return 
   ({  "daap.playlistsongs",
      ({
@@ -383,9 +384,9 @@ array generate_song_list(object id)
      list[i] = ({"dmap.listingitem", 
            ({
              ({"dmap.itemkind", 2}),
-             ({"dmap.itemid", (int)song["id"]}),
+             ({"dmap.itemid", song["id"]}),
              ({"dmap.itemname", song["title"]||"---"}),
-              ({"dmap.persistentid", (int)song["id"]}),
+              ({"dmap.persistentid", song["id"]}),
               ({"dmap.mediakind", 1}),
               ({"daap.songartist", song["artist"]||""}),
               ({"daap.songalbum", song["album"]||""}),
@@ -401,27 +402,31 @@ array generate_song_list(object id)
            })
        });
   }
+  
+  //werror("list: %O\n", list);
   return list;
 }
 
 array generate_playlist_list()
 {
   array playlists = app->db->get_playlists();
-  array list = allocate(app->db->get_playlist_count() +1 );
+  array list = allocate(app->db->get_playlist_count() + 1);
 
 //
 // protocol note:
 // the first playlist is always the full library.
 //
-  list[0] = ({"dmap.listingitem", 
-        ({
-          ({"dmap.itemid", 39}),
-          ({"dmap.persistentid",13950142391337751524}),
-          ({"dmap.itemname", app->db->get_name()}),
-           ({"com.apple.itunes.smart-playlist",0}),
-           ({"dmap.itemcount", get_song_count()}),
-        })
-    });
+
+
+list[0] = ({"dmap.listingitem", 
+      ({
+        ({"dmap.itemid", 39}),
+        ({"dmap.persistentid",13950142391337751524}),
+        ({"dmap.itemname", app->db->get_name()}),
+         ({"com.apple.itunes.smart-playlist",1}),
+         ({"dmap.itemcount", get_song_count()}),
+      })
+  });
 
   foreach(playlists;int i; mapping playlist)
   {
@@ -451,11 +456,11 @@ array generate_playlist_items(string dbid, string plid)
      list[i] = ({"dmap.listingitem", 
            ({
              ({"dmap.itemkind", 2}),
-             ({"dmap.itemid", (int)song["id"]}),
-             ({"dmap.containeritemid", (int)song["id"]}),
+             ({"dmap.itemid", song["id"]}),
+             ({"dmap.containeritemid", song["id"]}),
            })
        });
   }
-//  werror("list: %O\n", list);
+ //werror("list: %O\n", list);
   return list;
 }

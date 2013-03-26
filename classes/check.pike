@@ -228,11 +228,11 @@ class mon
    
    void run_process_thread()
    {
-werror("starting run_process_thread()\n");
+//werror("starting run_process_thread()\n");
      while(!should_quit)
      {
        sleep(10);
-werror("running process_entries()\n");
+// werror("running process_entries()\n");
        catch(m->process_entries());
      }
    }
