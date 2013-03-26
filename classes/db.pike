@@ -4,8 +4,11 @@ int in_processing_changes = 0;
 int id = 100;
 int gsc = 0;
 
-string sql_url;
-Sql.Sql sql;
+string db_url;
+object db;
+object songc;
+object playlistc;
+
 object log = Tools.Logging.get_logger("model");
 
 function did_revise = low_did_revise;
@@ -53,105 +56,76 @@ mapping songs = ([]);
 
 void start(/*string sqldb, function server_did_revise*/)
 {
-  string sqldb = config["model"]["datasource"];
+  string url = config["model"]["datasource"];
   did_revise = app->server_did_revise;
   
-  start_db(sqldb);  
+  start_db(url);  
   call_out(start_revision_checker, 10);  
   call_out(remove_stale_db_entries, 125);  
 }
 
-void start_db(string sqlurl)
+void start_db(string url)
 {
   log->info("Starting DB...");
-  sql_url = sqlurl;
-  sql = Sql.Sql(sql_url);
+  db_url = url;
+  db = Database.EJDB.Database(db_url, Database.EJDB.JBOWRITER|Database.EJDB.JBOCREAT);
   
-  if(sql)
-    check_tables(sql);  
-    
-  mapping r = sql->query("SELECT MAX(batch) as gsc FROM SONGS")[0];
-  
-  gsc = (int)r->gsc;
+  if(db)
+    check_tables(db);
+
+  mixed r;
+  mixed res = songc->find(([]), 0, (["$fields": (["batch": 1]), "$max": 1, "$orderby": (["batch": -1])]));
+  if(sizeof(res)) r = res[0];
+  else return;
+  gsc = r->batch;
   gsc++;
   
   did_revise(gsc);
+  
 }
 
-void check_tables(Sql.Sql sql)
+int collection_exists(object db, string coll)
+{
+  array c = db->get_collections();  
+  return (search(c, coll) != -1);
+}
+
+void check_tables(Database.EJDB.Database db)
 {
   log->info("Checking tables...");
-  process_table(sql, "songs", songs_fields);
-  process_table(sql, "playlists", playlists_fields);
-  process_table(sql, "playlist_members", playlist_members_fields);
-}
-
-void process_table(Sql.Sql sql, string table, array fields)
-{
-  if(!table_exists(sql, table))
+  if(!collection_exists(db, "songs"))
   {
-    create_table(sql, table, fields);
+    songc = db->create_collection("songs");    
+    // TODO create indexes.
   }
   else
   {
-    update_table(sql, table, fields);
+    songc = db->create_collection("songs");
   }
-}
-
-void update_table(Sql.Sql sql, string table, array fields)
-{
-  array f_list = sql->list_fields(table);
   
-  foreach(fields;;array f)
+  if(!collection_exists(db, "playlists"))
   {
-    int have_field = 0;
-    
-    foreach(f_list;;mapping field)
-    {
-      if(field->name == f[0])
-      {
-        have_field = 1;
-        break;
-      }
-    }
-    
-    if(!have_field)
-    {
-      log->info("adding field " + f[0] + " to table " + table);
-      sql->query("ALTER TABLE " + table + " ADD " + f[0] + " " + f[1]);
-    }
+    playlistc = db->create_collection("playlists");
+    // TODO create indexes.
   }
-}
-
-void create_table(Sql.Sql sql, string table, array fields)
-{
-  array fs = ({});
-  
-  foreach(fields;;array f)
-    fs += ({f[0] + " " + f[1]});
-    
-  string q = "CREATE TABLE " + table + "(" + (fs*", ") + ")";
-  log->info("query: " + q + "");
-   sql->query(q);
-}
-
-int table_exists(Sql.Sql sql, string table)
-{
-  return (sizeof(sql->list_tables(table))>=1);
+  else
+  {
+    playlistc = db->create_collection("playlists");
+  }
 }
 
 void remove(string path)
 {
   log->info("removing stale entry for %s", path);
-  array r = sql->query("SELECT id FROM songs WHERE path=%s", path);
-  sql->query("DELETE FROM songs WHERE path=%s", path);  
+  array r = songc->find((["path": path]))[0];
   
   if(r && sizeof(r))
   {
     foreach(r;;mapping row)
     {
-      log->debug(" - entry %d was in db.", (int)row->id);
-      remove_queue->write((int)row->id);
+      log->debug(" - entry %s was in db.", (string)row->_id);
+      songc->delete(row->_id)[0];  
+      remove_queue->write((string)row->_id);
     }
   }
 }
@@ -183,15 +157,16 @@ void process_change_queue()
   log->info("flushing changes to db");
   array checks = ({});
 
-  sql->query("BEGIN TRANSACTION");
+  songc->begin_transaction();
 
+  mixed err = catch {
   while(!change_queue->is_empty())
   {
      mapping ent = change_queue->read();
      checks += ({ent});
      if(sizeof(checks) >= 10 || change_queue->is_empty())
      {
-       checks = has_entry(sql, checks);
+       checks = has_entry(songc, checks);
        foreach(checks;; ent)
        {
          werror("adding " + ent->path + "\n");
@@ -201,7 +176,7 @@ void process_change_queue()
        //  ent->hash = String.string2hex(Crypto.MD5()->hash(Stdio.read_file(ent->path)));
        //  songs[ent->id] = ent;
          ent->batch = gsc+1;
-         write_entry_to_db(sql, ent);
+         write_entry_to_db(songc, ent);
          had_changes++;
        }
       checks = ({});
@@ -220,21 +195,24 @@ void process_change_queue()
     gsc++;
     had_changes = 0;
   }
-  sql->query("COMMIT");
+  };
+  if(err)
+  {
+    log->exception("Error occurred while processing additions.", err);
+    songc->abort_transaction();
+  }
+  else
+    songc->commit_transaction();
   in_processing_changes = 0;
 }
 
-array has_entry(Sql.Sql sql, array(mapping) entry)
+array has_entry(object coll, array(mapping) entry)
 { 
   array paths = ({});
 
-  foreach(entry;;mapping e)
-  {
-    paths += ({ "'" + sql->quote(e->path) + "'" });
-  }
 
 //  werror("query: %O\n", query);
-  array a = sql->query("select path from songs where path IN(" + ( paths * "," ) + ")");
+  array a = coll->find((["path": (["$in": entry->path]) ]));
 
   if(sizeof(a) == sizeof(entry)) return ({});
 
@@ -258,33 +236,19 @@ array has_entry(Sql.Sql sql, array(mapping) entry)
   return res;
 }
 
-void write_entry_to_db(Sql.Sql sql, mapping entry)
+void write_entry_to_db(object coll, mapping entry)
 {
-    array vc = ({});
-    foreach(entry; string key; mixed val)
-    {
-   //   if(!val) m_delete(entry, key);
-      if(intp(val))
-        vc += ({(string)val});
-      else
-        vc += ({"'"  + sql->quote(val) + "'"});
-    }
-    string q = "INSERT INTO songs (" + (indices(entry)* ", ") + ", added) VALUES(" + (vc * ", ") + ", 'now')";
-//werror("QUERY: %O\n", q);
-//werror(q + sprintf("%O\n", values(entry)));
-    sql->query(q /*, @values(entry)*/);
-    //  werror("failed to write entry for %s: %O\n", entry->path, entry);
+  coll->save(entry);
 }
 
 void remove_stale_db_entries()
 {
-  foreach(sql->query("SELECT path, id FROM songs");; mapping s)
+  foreach(songc->find(([]));; mapping s)
   {
     if(!file_stat(s->path))
     {
       werror("removing stale entry for %s", s->path);
-      sql->query("DELETE FROM songs WHERE id=%d", (int)s->id);
-      
+      songc->delete(s->_id);
     }
   }  
 }
@@ -298,19 +262,20 @@ void start_revision_checker()
   call_out(start_revision_checker, 60);
 }
 
-void bump(int songid)
+void bump(string songid)
 {
-  sql->query("UPDATE songs SET playcount = playcount+1 WHERE id = %d", songid);
+  songc->find((["_id": songid, "$inc": (["playcount" : 1])]));
 }
 
-mapping get_song(int id)
+mapping get_song(string id)
 {
-  array x = sql->query("SELECT * FROM SONGS WHERE id=%d", id);
+  array x = songc->find((["_id": id]));
   if(sizeof(x)) return x[0];
   else
     return 0;
 }
-string get_song_path(int id)
+
+string get_song_path(string id)
 {
   mapping m = get_song(id);
   if(m && m->path)
@@ -342,8 +307,8 @@ int get_playlist_count()
 int get_song_count()
 {
 //  return 10 + gsc;
-  array x = sql->query("SELECT COUNT(*) AS c FROM songs");
-  return (int)x[0]->c;
+  int x = songc->find(([]), 0, (["$onlycount": 1]));
+  return x;
 }
 
 array get_songs(int|void reva, int|void revb)
@@ -351,16 +316,9 @@ array get_songs(int|void reva, int|void revb)
   int min_rev = min(reva, revb);
   int max_rev = max(reva, revb);
 
-  string query = "SELECT * FROM songs";
+  array x = songc->find((["batch": (["$bt": ({min_rev, max_rev}) ]) ]));
   
-  if(max_rev)
-  {
-    query += " WHERE batch >= " + min_rev + " AND batch <= " + max_rev;
-  }
-
-  array x = sql->query(query);
-  
-  werror("fetched list of %d songs.\n", sizeof(x));
+  werror("fetched list of %d songs between %d and %d.\n", sizeof(x), min_rev, max_rev);
   return x;
 }
 
@@ -385,7 +343,7 @@ mapping playlists =  ([]);
 
 void low_did_revise(int revision)
 {
-  return;
+  return 0;
 }
 
 
