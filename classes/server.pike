@@ -33,6 +33,13 @@ werror("********\n*******\n");
   model->start();
   call_out(register_bonjour, 1);
   check->check(musicpath, model);
+//  call_out(print_locks, 10);
+}
+
+void print_locks()
+{
+  werror("locks: %O\n", locks);
+  call_out(print_locks, 30);
 }
 
 // TODO: make this work on windows?
@@ -96,7 +103,7 @@ werror("app_runner: %O\n", app_runner->get_ports());
 
 void server_did_revise(int revision)
 {
-  log->debug("change received.");
+  log->info("change received.");
   revision_num = revision;
   foreach(locks;mixed sessionid;object lock)
   {

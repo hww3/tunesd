@@ -200,8 +200,7 @@ void process_change_queue()
   }
   if(had_changes)
   {
-    did_revise(gsc+1);
-    gsc++;
+    did_revise(++gsc);
     had_changes = 0;
   }
   };

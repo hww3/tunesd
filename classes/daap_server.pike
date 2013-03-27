@@ -2,9 +2,13 @@ inherit Fins.FinsBase;
 
 inherit "dmap";
 
+object log = Tools.Logging.get_logger("daap");
+
 mixed handle_request(Protocols.HTTP.Server.Request request)
 {
   mixed response;
+
+
 
  // werror("request: %O\n", request);
   if(has_prefix(request->not_query, "daap://"))
@@ -16,8 +20,9 @@ mixed handle_request(Protocols.HTTP.Server.Request request)
     request->misc->is_daap = 1;
     //werror(" " + request->not_query + "\n");
   }
+  
 
-werror("request: %O\n", request);
+//werror("request: %O\n", request);
   switch(request->not_query)
   {
      case "/server-info":
@@ -44,7 +49,7 @@ werror("request: %O\n", request);
      default:
        response = handle_sub_request(request);
   }
-  
+      
   if(response)
   {
 //    werror("response: %O\n", create_response(response, 200));
@@ -101,7 +106,7 @@ mapping stream_audio(object id, string dbid, int songid)
   string song = app->db->get_song_path(songid);
 
   object s = file_stat(song);
-  werror("song file is %s: %O\n", song, s);
+  log->debug("song file is %s: %O\n", song, s);
 
   app->db->bump(songid);
   
@@ -151,7 +156,7 @@ array create_items(object id, string dbid)
   
   if(app->db->has_removed_in_revision((int)(id->variables["revision-number"])))
   {
-    werror("have removed items...\n");
+    log->info("have removed items...\n");
     x +=({({"dmap.deletedidlisting",  generate_deleted_ids((int)id->variables["revision-number"]) }) });
   }
   
@@ -183,7 +188,7 @@ array create_containers(object id, string dbid)
 array create_container_items(object id, string dbid, string playlist_id)
 {
   mapping playlist = get_playlist(dbid, playlist_id);
-  werror("playlist " + playlist_id + "\n");
+
   if(!playlist) return ({});
     
   return 
@@ -236,7 +241,9 @@ array|mapping create_update(object id, int|void is_revised)
   } 
   else
   {
-    werror("locking till change.\n");
+    id->send_timeout_delay = 60*60*24; // 1 day.
+    
+    log->debug("locking till change.");
     app->locks[id->variables->sessionid||1] = id;
     return (["_is_pipe_response": 1]);
 //    return 0;
@@ -281,7 +288,7 @@ array create_login(object id)
   int session_id = (int)Crypto.Random.random(1<<31);
 
   app->sessions[session_id] = ([]);
-werror("session_id:" + session_id);
+log->info("session_id:" + session_id);
 
   return 
   ({  "dmap.loginresponse", 
@@ -461,7 +468,7 @@ list[0] = ({"dmap.listingitem",
 
 array generate_playlist_items(string dbid, string plid)
 {
-  werror("getting playlist items for " + plid + "\n");
+  log->info("getting playlist items for " + plid + "\n");
   mapping playlist;
   playlist = get_playlist(dbid, plid);
   
