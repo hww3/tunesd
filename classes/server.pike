@@ -121,8 +121,9 @@ mixed handle_http(Protocols.HTTP.Server.Request request)
   response = daap->handle_request(request);
 
   if(!response)
+  {
     response = ::handle_http(request);
-
+  }
   return response;
 }
 

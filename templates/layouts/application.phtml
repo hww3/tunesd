@@ -1,0 +1,87 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+  <%if data["action"]%>
+  <title><%$appname%> <%$version%>: <%$action%></title>
+  <%else%>
+  <title><%$appname%> <%$version%>: Home</title>
+  <%endif%>
+
+<meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+
+<link rel="stylesheet" type="text/css" media="screen" href="/static/Underground.css" />
+
+</head>
+
+<body>
+<!-- wrap starts here -->
+<div id="wrap">
+
+		<!-- header -->
+		<div id="header">			
+					
+			<span id="slogan">music sharing service</span>
+			
+			<!-- tabs -->
+			<ul>
+	<li<%if !data->action || data->action=="home"%> id="current" <%endif%>><%action_link controller="/"%><span>Home</span></a></li>
+    <li<%if data->action == "library"%> id="current" <%endif%>><%action_link controller="/" action="library"%><span>Library</span></a></li>	
+	<li<%if data->action == "queue"%> id="current" <%endif%>><%action_link controller="/" action="queue"%><span>Queue</span></a></li>	
+<%if data->user%>
+	<li<%if data->action == "account"%> id="current" <%endif%>><%action_link controller="/account"%><span>My Account</span></a></li>			
+<%endif%>
+			</ul>
+											
+		</div>
+		
+		<div id="header-logo">			
+			
+			<div id="logo">tunesd<span class="red"><%$action%></span></div>		
+			<form method="post" class="search" action="<%action_url controller="/" action="search"%>">
+				<p><input name="q" class="textbox" type="text" />
+  				<input name="search" class="searchbutton" value="Search" type="submit" /></p>
+			</form>
+		</div>
+		
+       	<div id="main">
+
+<%if data->user %>
+Logged in as <%$user.email%>. <%action_link controller="/auth" action="logout" return_to="$request.not_query"%>Logout</a> / 
+  <%if data->user["is_admin"] %>
+      / <%action_link controller="/admin"%>Administration</a>
+  <%endif%>
+<% else %>
+You are not currently logged in. <%action_link controller="/auth" action="login" return_to="$request.not_query"%>Login</a> to access your personal
+settings.
+
+<% endif %>
+<p/>
+<div><font color="red"><i><%flash%></i></font></div>
+
+<%yield%>
+
+	</div> <!-- main -->
+
+<!-- wrap ends here -->
+</div>
+		
+<!-- footer starts here -->
+<div class="footer">
+	
+		<p>	
+		    &copy; 20011-2013 H William Welliver III
+
+            &nbsp;&nbsp;&nbsp;&nbsp;
+
+	    	<a href="http://hg.welliver.org/tunesd">tunesd</a>
+
+		    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		    <%action_link controller="/"%>Home</a>
+		</p>
+		
+</div>	
+	
+</body>
+</html>

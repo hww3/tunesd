@@ -1,0 +1,13 @@
+delete queue has <%sizeof var="$delete_queue"%> entries.
+<p>
+update queue has <%sizeof var="$exists_queue"%> entries.
+<p>
+create queue has <%sizeof var="$create_queue"%> entries.
+<p>
+history:
+<p>
+<ol>
+<%foreach var="$history" val="ent"%>
+<li><%$ent%>
+<%end%>
+</ol>

@@ -8,8 +8,6 @@ mixed handle_request(Protocols.HTTP.Server.Request request)
 {
   mixed response;
 
-
-
  // werror("request: %O\n", request);
   if(has_prefix(request->not_query, "daap://"))
   {
