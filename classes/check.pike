@@ -200,7 +200,7 @@ class ID3 {
 
 class mon
 {
-  inherit FS.Monitor.symlinks;
+  inherit Filesystem.Monitor.symlinks;
 
    ADT.Queue delete_queue = ADT.Queue();
    ADT.Queue create_queue = ADT.Queue();
@@ -503,16 +503,16 @@ object m;
 
 void check(string path, object db)
 {
-  m = mon(FS.Monitor.basic.MF_RECURSE);
+  m = mon(Filesystem.Monitor.basic.MF_RECURSE);
   m->db = db;
-  m->monitor(path, FS.Monitor.basic.MF_RECURSE);
+  m->monitor(path, Filesystem.Monitor.basic.MF_RECURSE);
   log->info("registering music path " + path);
   call_out(m->check, 5.0);
 }
 
 int main()
 {
-  m = mon(FS.Monitor.basic.MF_RECURSE);
+  m = mon(Filesystem.Monitor.basic.MF_RECURSE);
 //  m->monitor("/Users/hww3/Music/iTunes/iTunes Media/Music", FS.Monitor.basic.MF_RECURSE);
 //  m->set_nonblocking();
 
