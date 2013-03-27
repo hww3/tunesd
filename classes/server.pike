@@ -4,10 +4,10 @@ inherit Fins.Application;
 // the default network port to listen on if one isn't specified.
 #define SERVERPORT 3689
 
-#define DBURL "sqlite://tunesd.sqlite3"
+//#define DBURL "sqlite://tunesd.sqlite3"
 
 string musicpath;
-string version = "0.1";
+string version = "0.2";
 
 mapping locks = ([]);
 

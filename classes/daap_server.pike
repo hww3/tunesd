@@ -256,6 +256,7 @@ array create_server_info(object id)
       	({"dmap.status", 200}),
       	({"daap.protocolversion", "3.0"}),
 	      ({"dmap.protocolversion", "2.0"}),
+	      ({"com.apple.itunes.music-sharing-version", 196617}),
       	({"dmap.itemname", app->db->get_name()}),
         ({"dmap.authenticationschemes", 2}),
       	({"dmap.timeoutinterval", 1800}),
@@ -328,7 +329,7 @@ array get_db_info()
         ({"dmap.persistentid", app->db->get_pid()}),
         ({"dmap.itemname", app->db->get_name()}),
         ({"dmap.itemcount", app->db->get_song_count()}),
-        ({"dmap.containercount", app->db->get_playlist_count()}),
+        ({"dmap.containercount", app->db->get_playlist_count() + 2}),
     });
 }
 
@@ -356,7 +357,7 @@ int get_playlist_count()
 
 mapping get_playlist(string dbid, string plid)
 {
-  if(plid == "39")
+  if(plid == "1035" || plid == "743")
   {
     return (["items": app->db->get_songs()]);
   }
@@ -410,7 +411,7 @@ array generate_song_list(object id)
 array generate_playlist_list()
 {
   array playlists = app->db->get_playlists();
-  array list = allocate(app->db->get_playlist_count() + 1);
+  array list = allocate(app->db->get_playlist_count() + 2);
 
 //
 // protocol note:
@@ -420,17 +421,32 @@ array generate_playlist_list()
 
 list[0] = ({"dmap.listingitem", 
       ({
-        ({"dmap.itemid", 39}),
+        
+        ({"dmap.itemid", 743}),
         ({"dmap.persistentid",13950142391337751524}),
         ({"dmap.itemname", app->db->get_name()}),
-         ({"com.apple.itunes.smart-playlist",1}),
-         ({"dmap.itemcount", get_song_count()}),
+        ({"daap.baseplaylist", 1}),
+        ({"dmap.parentcontainerid", 0}),
+        ({"com.apple.itunes.smart-playlist",1}),
+        ({"dmap.itemcount", get_song_count()}),
       })
   });
 
+  list[1] = ({"dmap.listingitem", 
+        ({
+          ({"dmap.itemid", 1035}),
+          ({"dmap.persistentid",11114120178827494565}),
+          ({"dmap.itemname", "Music"}),
+          ({"com.apple.itunes.smart-playlist",1}),
+          ({"dmap.parentcontainerid", 0}),
+          ({"com.apple.itunes.special-playlist",6}),
+          ({"dmap.itemcount", get_song_count()}),
+        })
+    });
+
   foreach(playlists;int i; mapping playlist)
   {
-     list[i+1] = ({"dmap.listingitem", 
+     list[i+2] = ({"dmap.listingitem", 
            ({
              ({"dmap.itemid", playlist["id"]}),
              ({"dmap.persistentid", playlist["persistentid"] || playlist["id"]}),

@@ -64,11 +64,10 @@ void start(/*string sqldb, function server_did_revise*/)
   call_out(remove_stale_db_entries, 125);  
  
   playlists += ([
-   "40":
-    (["name": "MLibrary", "items": get_songs()[0..6], "id": 40, "persistentid": 40, "smart": 0])
-,
-"37":
-  (["name": "MLibrary2", "items": get_songs()[7..20], "id": 37, "persistentid": 37, "smart": 1])
+   "50":
+    (["name": "MLibrary", "items": get_songs()[0..6], "id": 50, "persistentid": 50, "smart": 0]),
+  "51":
+  (["name": "MLibrary2", "items": get_songs()[7..20], "id": 51, "persistentid": 51, "smart": 1])
 
   ]);
   
