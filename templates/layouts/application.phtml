@@ -26,6 +26,7 @@
 			
 			<!-- tabs -->
 			<ul>
+			    
 	<li<%if !data->action || data->action=="home"%> id="current" <%endif%>><%action_link controller="/"%><span>Home</span></a></li>
     <li<%if data->action == "library"%> id="current" <%endif%>><%action_link controller="/" action="library"%><span>Library</span></a></li>	
 	<li<%if data->action == "queue"%> id="current" <%endif%>><%action_link controller="/" action="queue"%><span>Queue</span></a></li>	
@@ -37,8 +38,8 @@
 		</div>
 		
 		<div id="header-logo">			
-			
-			<div id="logo">tunesd<span class="red"><%$action%></span></div>		
+			    
+			<div id="logo">tunesd:<span class="red"><%$action%></span></div>		
 			<form method="post" class="search" action="<%action_url controller="/" action="search"%>">
 				<p><input name="q" class="textbox" type="text" />
   				<input name="search" class="searchbutton" value="Search" type="submit" /></p>

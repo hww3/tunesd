@@ -1,0 +1,31 @@
+<title>Login</title>
+   <h3>Login</h3>
+   <p>
+<i><%flash%></i>
+   <p>
+<form action="<%action_url action="login" %>" id="loginform" method="post">
+<table>
+<tr>
+<td>
+<input type="hidden" name="return_to" value="<%$return_to%>"/>
+Login: 
+</td><td>
+<input type="string" id="username" name="username" value="<%$username%>"/><br/>
+</td>
+</tr>
+<tr>
+<td>
+Password:</td><td>
+ <input type="password" name="password"/></td></tr>
+<tr><td colspan="2">
+<p/>
+<input type="submit" name="action" value="Login"/>
+<input type="submit" name="action" value="Cancel"/>
+</td>
+</tr>
+</table>
+</form>
+<p/>
+<a href="<%action_url action="forgotpassword"%>">Forgot password?</a> | 
+<a href="<%action_url action="changepassword" return_to="$return_to"%>">Change Password</a> 
+

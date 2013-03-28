@@ -1,0 +1,28 @@
+<form action="<%action_url action="/auth/_login" %>" id="loginform" method="post">
+<table>
+<tr>
+<td>
+<input type="hidden" name="return_to" value="<%$return_to%>"/>
+Login: 
+</td><td>
+<input type="string" id="username" name="username" value="<%$username%>"/><br/>
+</td>
+</tr>
+<tr>
+<td>
+Password:</td><td>
+ <input type="password" name="password"/></td></tr>
+<tr><td colspan="2">
+<script type="text/javascript">
+var f = document.getElementById("username");
+f.focus();
+</script>
+<p/>
+<input type="submit" name="action" value="Login"/>
+<input type="submit" name="action" onclick="return closePopup()" value="Cancel"/>
+</td>
+</tr>
+</table>
+</form>
+<p/>
+<a href="<%action_url action="/auth/forgotpassword"%>">Forgot password?</a>
