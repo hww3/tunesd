@@ -102,6 +102,7 @@ mapping stream_audio(object id, string dbid, int songid)
 {
   // Protocols.HTTP.Server takes care of simple Range requests for us... how nice!
   string song = app->db->get_song_path(songid);
+  app->connections[id] = "Streaming " + app->db->get_song(songid)->title;
 
   object s = file_stat(song);
   log->debug("song file is %s: %O\n", song, s);

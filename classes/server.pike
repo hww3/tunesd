@@ -18,6 +18,9 @@ object daap = ((program)"daap_server")(this);
 object db;
 object check = ((program)"check")(this);
 
+mapping connections = ([]);
+
+program request_program = tunesd.Request;
 object port;
 int default_port = SERVERPORT;
 Protocols.DNS_SD.Service|object bonjour;

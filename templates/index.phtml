@@ -3,3 +3,8 @@ Welcome to tunesd <%$version%>.
 <p>
     <%$songcount%> songs in library.
 <p>
+
+<b>Current Server Activity</b><br/>
+<%foreach var="$connections" val="task"%>
+<%$task_ind.remoteaddr%>: <%$task%><br/>
+<%end%>

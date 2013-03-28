@@ -25,6 +25,9 @@ void populate_template(object id, object response, object v, mixed ... args)
 void index(object id, object response, object v, mixed ... args)
 {
   v->add("action", "home");
+  v->add("connections", app->connections);
+  
+  werror("connections: %O\n", app->connections);
 }
 
 
