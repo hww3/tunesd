@@ -55,8 +55,8 @@ mixed handle_request(Protocols.HTTP.Server.Request request)
     return (create_response(response, 200)) + (["request": request]);
   }
 
-  else
-    return 0;
+  app->connections[request] = "Admin interface access.";
+  return 0;
 }
   
 
@@ -227,6 +227,8 @@ array create_databases(object id)
 //!
 array|mapping create_update(object id, int|void is_revised)
 {
+  app->connections[id] = "Awaiting Library update.";
+    
   if(!app->locks[id->variables->sessionid||1] || is_revised)
   {
     app->locks[id->variables->sessionid||1] = 1;
