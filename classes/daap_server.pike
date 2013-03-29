@@ -2,8 +2,6 @@ inherit Fins.FinsBase;
 
 inherit "dmap";
 
-int auth_enabled = 1;
-
 object log = Tools.Logging.get_logger("daap");
 
 mixed handle_request(Protocols.HTTP.Server.Request request)
@@ -21,7 +19,19 @@ mixed handle_request(Protocols.HTTP.Server.Request request)
     //werror(" " + request->not_query + "\n");
   }
   
-
+  string auth = request["request_headers"]->authorization;
+  if(!app->get_auth_required())
+    request->misc->auth = 1;
+  else if(auth)
+  { 
+    catch(auth = (auth/" ")[1]);
+    catch(auth = MIME.decode_base64(auth));
+    catch(auth = (auth/":")[1]);
+    request->misc->auth = app->check_library_password(auth);
+  }
+  
+  werror("auth: %O\n", auth);
+  
 //werror("request: %O\n", request);
   switch(request->not_query)
   {
@@ -29,7 +39,7 @@ mixed handle_request(Protocols.HTTP.Server.Request request)
        response = create_server_info(request);
        break;
      case "/content-codes":
-       if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) response = auth_required("tunesd");
+       if(request->not_query != "/server-info" && !request->misc->auth) response = auth_required("tunesd");
        else response = create_content_codes(request);
        break;
      case "/login":
@@ -39,11 +49,11 @@ mixed handle_request(Protocols.HTTP.Server.Request request)
          response = create_logout(request);
          break;
      case "/update":
-       if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) response = auth_required("tunesd");
+       if(request->not_query != "/server-info" && !request->misc->auth) response = auth_required("tunesd");
        else response = create_update(request);
        break;
      case "/databases":
-       if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) response = auth_required("tunesd");
+       if(request->not_query != "/server-info" && !request->misc->auth) response = auth_required("tunesd");
        else response = create_databases(request);
        break;
      default:
@@ -79,17 +89,17 @@ array|mapping handle_sub_request(object request)
     }
     else if(sscanf(request->not_query, "/databases/%s/containers/%s/items", dbid, plid) == 2)
     {
-      if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) return auth_required("tunesd");
+      if(request->not_query != "/server-info" && !request->misc->auth) return auth_required("tunesd");
       return create_container_items(request, dbid, plid);
     }
     else if(sscanf(request->not_query, "/databases/%s/items", dbid) == 1)
     {
-      if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) return auth_required("tunesd");
+      if(request->not_query != "/server-info" && !request->misc->auth) return auth_required("tunesd");
       return create_items(request, dbid);
     }
     else if(sscanf(request->not_query, "/databases/%s/containers", dbid) == 1)
     {
-      if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) return auth_required("tunesd");
+      if(request->not_query != "/server-info" && !request->misc->auth) return auth_required("tunesd");
       return create_containers(request, dbid);      
     }
     else

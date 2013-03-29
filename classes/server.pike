@@ -29,7 +29,7 @@ object log = Tools.Logging.get_logger("fins.application");
 
 void start()
 {
-  musicpath = replace(config["music"]["path"], "$HOME", getenv()["HOME"]);
+  musicpath = replace(config["library"]["path"], "$HOME", getenv()["HOME"]);
 werror("********\n*******\n");  
   // the db is actually loaded by fins into "model", but for the sake of code already written, we keep db as an alias.
   db = model;
@@ -43,6 +43,18 @@ void print_locks()
 {
   werror("locks: %O\n", locks);
   call_out(print_locks, 30);
+}
+
+int get_auth_required()
+{
+  return (config["library"] && config["library"]["password"]);
+}
+
+int check_library_password(string pw)
+{
+  int res = 1;
+  catch(res = (pw == config["library"]["password"]));
+  return res;
 }
 
 // TODO: make this work on windows?
