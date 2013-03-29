@@ -55,7 +55,7 @@ mixed handle_request(Protocols.HTTP.Server.Request request)
     return (create_response(response, 200)) + (["request": request]);
   }
 
-  app->connections[request] = "Admin interface access.";
+  app->connections[request] = ({"Admin interface access."});
   return 0;
 }
   
@@ -102,12 +102,12 @@ mapping stream_audio(object id, string dbid, int songid)
 {
   // Protocols.HTTP.Server takes care of simple Range requests for us... how nice!
   string song = app->db->get_song_path(songid);
-  app->connections[id] = "Streaming " + app->db->get_song(songid)->title;
+  app->connections[id] = ({"Streaming " + app->db->get_song(songid)->title, lambda(int clean){if(clean) app->db->bump(songid);} });
 
   object s = file_stat(song);
   log->debug("song file is %s: %O\n", song, s);
 
-  app->db->bump(songid);
+//  app->db->bump(songid);
   
   if(song)
     return (["type": "audio/" + app->db->get_song(songid)["format"]/*"application/x-dmap-tagged"*/, "extra_heads": (["DAAP-Server": "tunesd/" + app->version]), "file": Stdio.File(song)]);  
@@ -227,7 +227,7 @@ array create_databases(object id)
 //!
 array|mapping create_update(object id, int|void is_revised)
 {
-  app->connections[id] = "Awaiting Library update.";
+  app->connections[id] = ({"Awaiting Library update."});
     
   if(!app->locks[id->variables->sessionid||1] || is_revised)
   {
@@ -480,8 +480,8 @@ array generate_playlist_items(string dbid, string plid)
      list[i] = ({"dmap.listingitem", 
            ({
              ({"dmap.itemkind", 2}),
-             ({"dmap.itemid", song["id"]}),
-             ({"dmap.containeritemid", song["id"]}),
+             ({"dmap.itemid", (mappingp(song)?song["id"]:song)}),
+             ({"dmap.containeritemid", (mappingp(song)?song["id"]:song)}),
            })
        });
   }

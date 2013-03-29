@@ -483,7 +483,7 @@ log->debug("adding file %s", p);
       atts["size"] = file_stat(p)->size;
       atts["modified"] = file_stat(p)->mtime;
       if(db) 
-        db->add(atts);      
+        db->add(atts);
     }
 //    else werror("SCAN ERROR: %s\n", p);
   }

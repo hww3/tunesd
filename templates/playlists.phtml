@@ -1,0 +1,35 @@
+
+<%action_form controller="/" action="add_playlist"%>
+<p/>
+Name: <input type="string" name="name" size="30"/>
+<p/>
+Playlist type: Smart <input type="radio" name="smart" value="1" checked="1"/> &nbsp; Songlist <input type="radio" name="smart" value="0"/>
+<p/>
+Query: <textarea name="query" rows="5" cols="40">([ ])</textarea>
+<p/>
+<input type="submit" value="Add Playlist"/>
+</form>
+<p>
+    
+<table>
+<tr>
+    <th align="left">Name</th>
+    <th align="left">Smart?</th>
+    <th align="left">Query/Items</th>
+</tr>
+<%foreach var="$playlists" val="playlist"%>
+  <tr>
+      <td>
+        <%$playlist.name%>
+       </td>
+       <td>
+        <%boolean var="$playlist.smart"%>
+        </td>
+        <td>
+  <%if data->playlist->smart%>
+  <%$playlist.query%>
+  <%endif%>
+  </td>
+  </tr>
+<%end%>
+</table>

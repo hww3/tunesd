@@ -52,8 +52,6 @@ constant playlist_members_fields = ({
   ({"song_id", "int not null"}),
 });
 
-mapping songs = ([]);
-
 void start(/*string sqldb, function server_did_revise*/)
 {
   string url = config["model"]["datasource"];
@@ -61,16 +59,7 @@ void start(/*string sqldb, function server_did_revise*/)
   
   start_db(url);  
   call_out(start_revision_checker, 10);  
-  call_out(remove_stale_db_entries, 125);  
- 
-  playlists += ([
-   "50":
-    (["name": "MLibrary", "items": get_songs()[0..6], "id": 50, "persistentid": 50, "smart": 0]),
-  "51":
-  (["name": "MLibrary2", "items": get_songs()[7..20], "id": 51, "persistentid": 51, "smart": 1])
-
-  ]);
-  
+  call_out(remove_stale_db_entries, 125);    
 }
 
 void start_db(string url)
@@ -125,16 +114,16 @@ void check_tables(Database.EJDB.Database db)
 
 void remove(string path)
 {
-  log->info("removing stale entry for %s", path);
-  array r = songc->find((["path": path]))[0];
+  log->info("removing entry for %s", path);
+  array r = songc->find((["path": path]));
   
   if(r && sizeof(r))
   {
     foreach(r;;mapping row)
     {
       log->debug(" - entry %s was in db.", (string)row->_id);
-      songc->delete(row->_id)[0];  
-      remove_queue->write((string)row->_id);
+      songc->delete_bson((string)row->_id);  
+      remove_queue->write(row->id);
     }
   }
 }
@@ -262,7 +251,7 @@ void remove_stale_db_entries()
     if(!file_stat(s->path))
     {
       werror("removing stale entry for %s", s->path);
-      songc->delete(s->_id);
+      songc->delete_bson((string)s->_id);
     }
   }  
 }
@@ -276,9 +265,16 @@ void start_revision_checker()
   call_out(start_revision_checker, 60);
 }
 
-void bump(string songid)
+void bump(int songid)
 {
-  songc->find((["_id": songid, "$inc": (["playcount" : 1])]));
+  werror("bump! (%O)", songid);
+  
+  mixed s = songc->find((["id": songid, "playcount": (["$exists": Standards.BSON.True]),  "$inc": (["playcount" : 1])]));
+  
+  if(!sizeof(s))
+    s = songc->find((["id": songid, "$set": (["playcount" : 1])]));
+    
+    werror("=> %O\n", s);
 }
 
 mapping get_song(string id)
@@ -315,7 +311,7 @@ int get_id()
 
 int get_playlist_count()
 {
-  return sizeof(playlists);
+  return playlistc->find(([]), 0, (["$onlycount": 1]));
 }
 
 int get_song_count()
@@ -342,20 +338,95 @@ array get_songs(int|void reva, int|void revb)
 
 array get_playlists()
 {
-  return values(playlists);
+  array pls = playlistc->find(([]));
+  foreach(pls; int x; mapping pl)
+  {    
+    werror("playlist: %O\n", pl);
+    if(pl->smart && pl->query)
+    {
+        mapping q = eval_query(pl->query);
+        werror("query: %O\n", q);
+        pl->items = songc->find(q)["id"];
+    }
+  }
+  
+  return pls;
 }
 
 mapping get_playlist(string plid)
 {
-  return playlists[plid];
+  array plr = playlistc->find((["id": (int)plid]));
+  
+  if(!plr || !sizeof(plr))
+    throw(Error.Generic("Playlist id " + plid + " does not exist.\n"));
+
+  mapping pl = plr[0];
+
+  werror("playlist: %O\n", pl);
+  
+  if(pl->smart && pl->query)
+  {
+      mapping q = eval_query(pl->query);
+      werror("query: %O\n", q);
+      pl->items = songc->find(q)["id"];
+  } 
+  return pl;
 }
 
-mapping playlists = ([]);
+int add_playlist(string name, int smart, string|void query, array|void songs)
+{
+  mixed err;
+  mixed q2;
+  int id;
+  
+  if(smart && !query)
+    throw(Error.Generic("No query provided for smart playlist."));
 
+  if(!smart && !songs)
+    throw(Error.Generic("No songs provided for playlist."));
+  
+  name = String.trim_all_whites(name);
+  query = String.trim_all_whites(query);
+
+  if(!name || !sizeof(name))
+    throw(Error.Generic("No name provided for playlist."));
+  
+  if(sizeof(playlistc->find((["name": name]))))
+    throw(Error.Generic("Playlist " + name + " already exists."));
+  
+  id = max_playlist_id() + 1;
+  
+  if(smart)
+  {
+    if(err = catch(q2 = eval_query(query)))
+      throw(Error.Generic("Invalid query provided for playlist: " + err[0]));     
+
+    log->info("playlist query: %O\n", q2);
+    
+    mapping playlist_def = (["name": name, "query": query, "id": id, "persistent_id": id, "smart": smart]);
+    werror("playlist_def: %O\n", playlist_def);
+    playlistc->save(playlist_def);
+  }
+  
+  return id;
+}
 
 void low_did_revise(int revision)
 {
   return 0;
 }
 
+int max_playlist_id()
+{
+  mixed res = playlistc->find(([]), 0, (["$fields": (["id": 1]), "$max": 1, "$orderby": (["id": -1])]));
+   if(sizeof(res)) return res[0]->id;
+   else return 0x100000;
+}
 
+mixed eval_query(string query)
+{
+  string cls = "mixed e(){ return (" + query + ");}";
+  program p = compile_string(cls);
+//  werror("query: " + Tools.JSON.serialize(p()->e()));
+  return p()->e();
+}
