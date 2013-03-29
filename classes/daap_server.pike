@@ -2,6 +2,8 @@ inherit Fins.FinsBase;
 
 inherit "dmap";
 
+int auth_enabled = 1;
+
 object log = Tools.Logging.get_logger("daap");
 
 mixed handle_request(Protocols.HTTP.Server.Request request)
@@ -27,7 +29,7 @@ mixed handle_request(Protocols.HTTP.Server.Request request)
        response = create_server_info(request);
        break;
      case "/content-codes":
-       if(request->not_query != "/server-info" && !request["request_headers"]->authorization) response = auth_required("tunesd");
+       if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) response = auth_required("tunesd");
        else response = create_content_codes(request);
        break;
      case "/login":
@@ -37,11 +39,11 @@ mixed handle_request(Protocols.HTTP.Server.Request request)
          response = create_logout(request);
          break;
      case "/update":
-       if(request->not_query != "/server-info" && !request["request_headers"]->authorization) response = auth_required("tunesd");
+       if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) response = auth_required("tunesd");
        else response = create_update(request);
        break;
      case "/databases":
-       if(request->not_query != "/server-info" && !request["request_headers"]->authorization) response = auth_required("tunesd");
+       if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) response = auth_required("tunesd");
        else response = create_databases(request);
        break;
      default:
@@ -77,17 +79,17 @@ array|mapping handle_sub_request(object request)
     }
     else if(sscanf(request->not_query, "/databases/%s/containers/%s/items", dbid, plid) == 2)
     {
-      if(request->not_query != "/server-info" && !request["request_headers"]->authorization) return auth_required("tunesd");
+      if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) return auth_required("tunesd");
       return create_container_items(request, dbid, plid);
     }
     else if(sscanf(request->not_query, "/databases/%s/items", dbid) == 1)
     {
-      if(request->not_query != "/server-info" && !request["request_headers"]->authorization) return auth_required("tunesd");
+      if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) return auth_required("tunesd");
       return create_items(request, dbid);
     }
     else if(sscanf(request->not_query, "/databases/%s/containers", dbid) == 1)
     {
-      if(request->not_query != "/server-info" && !request["request_headers"]->authorization) return auth_required("tunesd");
+      if(auth_enabled && request->not_query != "/server-info" && !request["request_headers"]->authorization) return auth_required("tunesd");
       return create_containers(request, dbid);      
     }
     else
@@ -100,6 +102,10 @@ array|mapping handle_sub_request(object request)
   
 mapping stream_audio(object id, string dbid, int songid)
 {
+  // by randomly selecting a dbid and then comparing it here, we try to get a little bit
+  // of security, as authorization is not passed for some reason.
+  if(dbid != (string)app->db->get_id()) return auth_required("tunesd");
+  
   // Protocols.HTTP.Server takes care of simple Range requests for us... how nice!
   string song = app->db->get_song_path(songid);
   app->connections[id] = ({"Streaming " + app->db->get_song(songid)->title, lambda(int clean){if(clean) app->db->bump(songid);} });

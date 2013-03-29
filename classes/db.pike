@@ -8,6 +8,7 @@ string db_url;
 object db;
 object songc;
 object playlistc;
+int dbid;
 
 object log = Tools.Logging.get_logger("model");
 
@@ -306,7 +307,9 @@ int get_pid()
 
 int get_id()
 {
-  return 27;
+  if(!dbid)
+    dbid = random(0xffff);
+  return dbid;
 }
 
 int get_playlist_count()
