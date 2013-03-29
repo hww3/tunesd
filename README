@@ -15,11 +15,11 @@ Features include:
 - automatically updates the music library as changes are made, no 
   rescanning required
 - support for reading tags from MP3 and MPEG-4 files.
+- authentication support
+- web interface
 
 Upcoming features:
 
-- authentication support
-- web interface
 - playlists
 - smart playlist creation
 
