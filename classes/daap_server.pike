@@ -30,7 +30,6 @@ mixed handle_request(Protocols.HTTP.Server.Request request)
     request->misc->auth = app->check_library_password(auth);
   }
   
-  werror("auth: %O\n", auth);
   
 //werror("request: %O\n", request);
   switch(request->not_query)
