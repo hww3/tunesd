@@ -107,6 +107,15 @@ object low_register_bonjour(int port, string name, string service)
     }
   #endif
   #endif
+    else if(have_command("dns-sd"))
+    {
+      array command = ({"dns-sd"});
+      command += ({"-R"});
+      command += ({name});
+      command += ({"_" + service + "._tcp"});
+      command += ({"."});
+      command += ({(string)port});
+    }
     else
     {
       throw(Error.Generic("You must have a Bonjour/Avahi installation in order to run this application.\n"));
