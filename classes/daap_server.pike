@@ -116,16 +116,20 @@ mapping stream_audio(object id, string dbid, int songid)
   if(dbid != (string)app->db->get_id()) return auth_required("tunesd");
   
   // Protocols.HTTP.Server takes care of simple Range requests for us... how nice!
+  mapping ent = app->db->get_song(songid);
   string song = app->db->get_song_path(songid);
-  app->connections[id] = ({"Streaming " + app->db->get_song(songid)->title, lambda(int clean){if(clean) app->db->bump(songid);} });
+  app->connections[id] = ({"Streaming " + ent->title, lambda(int clean){if(clean) app->db->bump(songid);} });
 
   object s = file_stat(song);
-  log->debug("song file is %s: %O\n", song, s);
+  log->debug("song file for id <%d> is %s: %O\n", songid, song, s);
 
+  object file;
+  catch(file = Stdio.File(song));
+  
 //  app->db->bump(songid);
   
-  if(song)
-    return (["type": "audio/" + app->db->get_song(songid)["format"]/*"application/x-dmap-tagged"*/, "extra_heads": (["DAAP-Server": "tunesd/" + app->version]), "file": Stdio.File(song)]);  
+  if(file)
+    return (["type": "audio/" + ent["format"]/*"application/x-dmap-tagged"*/, "extra_heads": (["DAAP-Server": "tunesd/" + app->version]), "file": file]);  
   else 
     return (["type": "text/plain", "error": 404, "extra_heads": (["DAAP-Server": "tunesd/" + app->version]),  "data": "song not found."]);
 }

@@ -59,6 +59,25 @@ void search(object id, object response, object v, mixed ... args)
 {
 }
 
+void settings(object id, object response, object v, mixed ... args)
+{
+  
+  if(id->variables->library && (id->variables->library != app->config["library"]["path"]))
+  {
+    object stat = file_stat(id->variables->library);
+    if(stat && stat->isdir)
+    {
+      app->change_musicpath(id->variables->library);
+      response->flash("msg", "Library location updated.");
+    }
+    else
+      response->flash("msg", "Unable to update library location. Path \"" + 
+        id->variables->library + "\" does not exist or is not a directory.");
+  }  
+
+  v->add("library", app->config["library"]["path"]);
+}
+
 void add_playlist(object id, object response, object v, mixed ... args)
 {
   int rv;

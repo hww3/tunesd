@@ -30,9 +30,7 @@
     <li<%if data->action == "library"%> id="current" <%endif%>><%action_link controller="/" action="library"%><span>Library</span></a></li>	
     <li<%if data->action == "playlists"%> id="current" <%endif%>><%action_link controller="/" action="playlists"%><span>Playlists</span></a></li>	
 	<li<%if data->action == "status"%> id="current" <%endif%>><%action_link controller="/" action="status"%><span>Status</span></a></li>	
-<%if data->user%>
 	<li<%if data->action == "settings"%> id="current" <%endif%>><%action_link controller="/" action="settings"%><span>Settings</span></a></li>			
-<%endif%>
 			</ul>
 											
 		</div>

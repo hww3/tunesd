@@ -40,6 +40,16 @@ werror("********\n*******\n");
 //  call_out(print_locks, 10);
 }
 
+void change_musicpath(string path)
+{
+  config->set_value("library", "path", path);
+  musicpath = replace(config["library"]["path"], "$HOME", getenv()["HOME"]); 
+  destruct(check);
+  check = ((program)"check")(this);
+  check->check(musicpath, model);  
+  db->start_cleanup();
+}
+
 void print_locks()
 {
   werror("locks: %O\n", locks);

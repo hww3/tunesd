@@ -59,7 +59,12 @@ void start(/*string sqldb, function server_did_revise*/)
   did_revise = app->server_did_revise;
   
   start_db(url);  
+  start_cleanup();
   call_out(start_revision_checker, 10);  
+}
+
+void start_cleanup()
+{
   call_out(remove_stale_db_entries, 125);    
 }
 
@@ -113,9 +118,36 @@ void check_tables(Database.EJDB.Database db)
   }
 }
 
+string relativize_path(string path)
+{
+  if(path[0] == '/')
+  {
+    if(has_prefix(path, app->config["library"]["path"]))
+      path = path[sizeof(app->config["library"]["path"])..];
+      
+    while(path[0] == '/' && sizeof(path) > 1)
+      path = path[1..];
+  }
+  
+  return path;
+}
+
+string absolutify_path(string path)
+{
+  if(path[0] != '/')
+  {
+    path = Stdio.append_path(app->config["library"]["path"], path);
+  }
+  
+  return path;
+}
+
 void remove(string path)
 {
   log->info("removing entry for %s", path);
+  
+  path = relativize_path(path);
+  
   array r = songc->find((["path": path]));
   
   if(r && sizeof(r))
@@ -132,6 +164,7 @@ void remove(string path)
 void add(mapping ent)
 {
 //  log->debug("adding %O", ent);
+//  ent->path = relativize_path(ent->path);
   change_queue->write(ent);
 }
 
@@ -162,13 +195,14 @@ void process_change_queue()
   while(!change_queue->is_empty())
   {
      mapping ent = change_queue->read();
+     ent->path = relativize_path(ent->path);
      checks += ({ent});
-     if(sizeof(checks) >= 10 || change_queue->is_empty())
+     if(sizeof(checks) < 10 || change_queue->is_empty())
      {
        checks = has_entry(songc, checks);
        foreach(checks;; ent)
        {
-         werror("adding " + ent->path + "\n");
+         werror("adding %s (" + ent->path + ")\n", ent->title);
          // ent->id = ++id;
          if(!ent->title) ent->title = basename(ent->path);
          ent->format = lower_case((ent->path/".")[-1] || "mp3");
@@ -208,6 +242,7 @@ array has_entry(object coll, array(mapping) entry)
 { 
   array paths = ({});
 
+//werror("entry: %O\n", entry);
 
 //  werror("query: %O\n", query);
   array a = coll->find((["path": (["$in": entry->path]) ]));
@@ -247,12 +282,15 @@ void write_entry_to_db(object coll, mapping entry)
 
 void remove_stale_db_entries()
 {
+  log->info("Checking library for missing files.");
   foreach(songc->find(([]));; mapping s)
   {
+    s->path = absolutify_path(s->path);
+    
     if(!file_stat(s->path))
     {
-      werror("removing stale entry for %s", s->path);
-      songc->delete_bson((string)s->_id);
+      log->info("Removing stale entry for song file <%s>.", s->path);
+      remove(s->path);
     }
   }  
 }
@@ -263,7 +301,7 @@ void start_revision_checker()
   {
      process_change_queue();
   }
-  call_out(start_revision_checker, 60);
+  call_out(start_revision_checker, 10);
 }
 
 void bump(int songid)
@@ -290,7 +328,7 @@ string get_song_path(string id)
 {
   mapping m = get_song(id);
   if(m && m->path)
-    return m->path;
+    return absolutify_path(m->path);
 
   else return 0;    
 }
