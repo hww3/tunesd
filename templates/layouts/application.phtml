@@ -47,13 +47,9 @@
        	<div id="main">
 
 <%if data->user %>
-Logged in as <%$user.email%>. <%action_link controller="/auth" action="logout" return_to="$request.not_query"%>Logout</a> / 
-  <%if data->user["is_admin"] %>
-      / <%action_link controller="/admin"%>Administration</a>
-  <%endif%>
+Logged in as <%$user%>.
 <% else %>
-You are not currently logged in. <%action_link controller="/auth" action="login" return_to="$request.not_query"%>Login</a> to access your personal
-settings.
+You are not currently logged in. <%action_link controller="/auth" action="login" return_to="$request.not_query"%>Login</a> to access settings.
 
 <% endif %>
 <p/>

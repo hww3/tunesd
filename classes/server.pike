@@ -30,20 +30,27 @@ object log = Tools.Logging.get_logger("fins.application");
 
 void start()
 {
-  musicpath = replace(config["library"]["path"], "$HOME", getenv()["HOME"]);
+  // attempt to find the music path.
+  catch(musicpath = replace(config->get_value("library", "path"), "$HOME", getenv()["HOME"]));
 werror("********\n*******\n");  
   // the db is actually loaded by fins into "model", but for the sake of code already written, we keep db as an alias.
   db = model;
   model->start();
   call_out(register_bonjour, 1);
-  check->check(musicpath, model);
+  if(musicpath)
+    check->check(musicpath, model);
 //  call_out(print_locks, 10);
+}
+
+string get_musicpath()
+{
+  return musicpath;
 }
 
 void change_musicpath(string path)
 {
   config->set_value("library", "path", path);
-  musicpath = replace(config["library"]["path"], "$HOME", getenv()["HOME"]); 
+  musicpath = replace(config->get_value("library", "path"), "$HOME", getenv()["HOME"]); 
   destruct(check);
   check = ((program)"check")(this);
   check->check(musicpath, model);  
@@ -58,16 +65,54 @@ void print_locks()
 
 int get_auth_required()
 {
-  return (config["library"] && config["library"]["password"]);
+  return (config["library"] && config["library"]["password"])?1:0;
+}
+
+void set_library_password(string pw)
+{
+  config->set_value("library", "password", Crypto.make_crypt_md5(pw));
+  
+  // since itunes doesn't pass auth with streaming requests, we change the db id so that files can't be streamed.
+  db->reset_id();
+  foreach(locks;object o; object l)
+  {
+    destruct(l); 
+  }
+}
+
+void disable_library_password()
+{
+  config->delete_value("library", "password");
 }
 
 int check_library_password(string pw)
 {
   int res = 1;
-  catch(res = (pw == config["library"]["password"]));
+  catch(res = Crypto.verify_crypt_md5(pw, config["library"]["password"]));
   return res;
 }
 
+int get_admin_auth_required()
+{
+  return (config["admin"] && config["admin"]["password"])?1:0;
+}
+
+void set_admin_password(string pw)
+{
+  config->set_value("admin", "password", Crypto.make_crypt_md5(pw));
+}
+
+void disable_admin_password()
+{
+  config->delete_value("admin", "password");
+}
+
+int check_admin_password(string pw)
+{
+  int res = 1;
+  catch(res = Crypto.verify_crypt_md5(pw, config["admin"]["password"]));
+  return res;
+}
 // TODO: make this work on windows?
 int have_command(string command)
 {

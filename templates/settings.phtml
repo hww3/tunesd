@@ -1,0 +1,21 @@
+
+<%action_form method="post" action="update_settings" controller="/"%>
+Music location: <%input name="library" value="$library" type="text" size="60"%>
+<input type="submit" value="Save"/>
+</form>
+
+<%action_form method="post" action="update_settings" controller="/"%>
+<input name="library_password_set" value="1" type="hidden"/>
+<%input name="library_password_enable" value="1" checked="$library_password_enable" type="checkbox"%> Enable Library Password
+<p>
+Library Password: <input name="library_password" value="" type="text" size="30">
+<input type="submit" value="Save"/>
+</form>
+
+<%action_form method="post" action="update_settings" controller="/"%>
+<input name="admin_password_set" value="1" type="hidden"/>
+<%input name="admin_password_enable" value="1" checked="$admin_password_enable" type="checkbox"%> Enable Admin Password
+<p>
+Admin Password: <input name="admin_password" value="" type="text" size="30">
+<input type="submit" value="Save"/>
+</form>

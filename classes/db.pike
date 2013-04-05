@@ -122,8 +122,8 @@ string relativize_path(string path)
 {
   if(path[0] == '/')
   {
-    if(has_prefix(path, app->config["library"]["path"]))
-      path = path[sizeof(app->config["library"]["path"])..];
+    if(has_prefix(path, app->get_musicpath()))
+      path = path[sizeof(app->get_musicpath())..];
       
     while(path[0] == '/' && sizeof(path) > 1)
       path = path[1..];
@@ -136,7 +136,7 @@ string absolutify_path(string path)
 {
   if(path[0] != '/')
   {
-    path = Stdio.append_path(app->config["library"]["path"], path);
+    path = Stdio.append_path(app->get_musicpath(), path);
   }
   
   return path;
@@ -341,6 +341,11 @@ string get_name()
 int get_pid()
 {
   return 72;
+}
+
+int reset_id()
+{
+  dbid = 0;
 }
 
 int get_id()

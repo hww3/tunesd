@@ -24,6 +24,7 @@ void populate_template(object id, object response, object v, mixed ... args)
   v->add("version", app->version);  
   v->add("appname", "tunesd");
   v->add("songcount", app->db->get_song_count());
+  v->add("user", id->misc->session_variables->user);
 }
 
 void index(object id, object response, object v, mixed ... args)
@@ -61,21 +62,103 @@ void search(object id, object response, object v, mixed ... args)
 
 void settings(object id, object response, object v, mixed ... args)
 {
-  
-  if(id->variables->library && (id->variables->library != app->config["library"]["path"]))
+  if(app->get_admin_auth_required() && !id->misc->session_variables->user)
   {
-    object stat = file_stat(id->variables->library);
+    response->flash("msg", "You must be logged in to access settings.");
+    response->redirect(index);  
+  }
+  
+  string library = id->variables->library;
+   string|int library_password_enable = id->variables->library_password_enable;
+   string library_password = id->variables->library_password;
+
+   string|int admin_password_enable = id->variables->admin_password_enable;
+   string admin_password = id->variables->admin_password;
+  
+  library_password_enable = app->get_auth_required();
+  admin_password_enable = app->get_admin_auth_required();
+
+  v->add("library_password_enable", library_password_enable);
+  v->add("admin_password_enable", admin_password_enable);
+  v->add("library", app->get_musicpath());
+}
+
+void update_settings(object id, object response, object v, mixed ... args)
+{
+  if(app->get_admin_auth_required() && !id->misc->session_variables->user)
+  {
+    response->flash("msg", "You must be logged in to access settings.");
+    response->redirect(index);  
+  }
+  
+  werror("variables: %O\n", id->variables);
+  
+  string library = id->variables->library;
+  string|int library_password_enable = id->variables->library_password_enable;
+  string library_password = id->variables->library_password;
+ 
+  string|int admin_password_enable = id->variables->admin_password_enable;
+  string admin_password = id->variables->admin_password;
+  
+  m_delete(id->variables, "library_password");
+  m_delete(id->variables, "admin_password");
+  
+  if(id->variables->admin_password_set)
+  {
+    if(admin_password_enable = (int)admin_password_enable)
+    {
+      if(admin_password && strlen(admin_password))
+      {
+        app->set_admin_password(admin_password);
+        response->flash("msg", "Admin password set.");        
+      }
+      else
+      {
+        response->flash("msg", "Cannot enable admin password, no admin password provided.");
+      }
+    }
+    else
+    {
+      app->disable_admin_password();  
+      response->flash("msg", "Admin password disabled.");
+    }
+  } 
+  
+  if(id->variables->library_password_set)
+  {
+    if(library_password_enable = (int)library_password_enable)
+    {
+      if(library_password && strlen(library_password))
+      {
+        app->set_library_password(library_password);
+        response->flash("msg", "Library password set.");        
+      }
+      else
+      {
+        response->flash("msg", "Cannot enable library password, no library password provided.");
+      }
+    }
+    else
+    {
+      app->disable_library_password();  
+      response->flash("msg", "Library password disabled.");
+    }
+  } 
+  
+  if(library && (library != app->get_musicpath()))
+  {
+    object stat = file_stat(library);
     if(stat && stat->isdir)
     {
-      app->change_musicpath(id->variables->library);
+      app->change_musicpath(library);
       response->flash("msg", "Library location updated.");
     }
     else
       response->flash("msg", "Unable to update library location. Path \"" + 
-        id->variables->library + "\" does not exist or is not a directory.");
+        library + "\" does not exist or is not a directory.");
   }  
-
-  v->add("library", app->config["library"]["path"]);
+  
+  response->redirect(settings);
 }
 
 void add_playlist(object id, object response, object v, mixed ... args)

@@ -3,18 +3,16 @@
 <tr>
 <td>
 <input type="hidden" name="return_to" value="<%$return_to%>"/>
-Login: 
 </td><td>
-<input type="string" id="username" name="username" value="<%$username%>"/><br/>
 </td>
 </tr>
 <tr>
 <td>
 Password:</td><td>
- <input type="password" name="password"/></td></tr>
+ <input type="password" id="password" name="password"/></td></tr>
 <tr><td colspan="2">
 <script type="text/javascript">
-var f = document.getElementById("username");
+var f = document.getElementById("password");
 f.focus();
 </script>
 <p/>
@@ -25,4 +23,3 @@ f.focus();
 </table>
 </form>
 <p/>
-<a href="<%action_url action="/auth/forgotpassword"%>">Forgot password?</a>

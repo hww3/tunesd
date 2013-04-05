@@ -339,7 +339,7 @@ void check(string path, object db)
   m = mon(Filesystem.Monitor.basic.MF_RECURSE);
   m->db = db;
   m->monitor(path, Filesystem.Monitor.basic.MF_RECURSE);
-  log->info("registering music path " + path);
+  log->info("registering music path <%s>", path);
   call_out(m->check, 5.0);
 }
 
