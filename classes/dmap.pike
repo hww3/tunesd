@@ -335,10 +335,12 @@ string encode_dmap(array data)
   string tag;
   mixed val = "";
   //werror("Data: %O\n", data);
-  if(sizeof(data) < 2)
+  if(sizeof(data) < 2 && !stringp(data[0]))
   {
-    throw(Error.Generic("DMAP Field must contain at least 2 entries.\n")); 
+    throw(Error.Generic("non encoded DMAP Field must contain at least 2 entries.\n")); 
   }
+  if(sizeof(data) == 1) return data[0];
+  
   mapping t = content_tags[data[0]];
   if(!t)   if(!t) throw(Error.Generic("Unknown DMAP field " + data[0]+ "\n"));
   

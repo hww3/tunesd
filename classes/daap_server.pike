@@ -409,26 +409,7 @@ array generate_song_list(object id)
   array list = allocate(sizeof(songs));
   foreach(songs;int i; mapping song)
   {
-     list[i] = ({"dmap.listingitem", 
-           ({
-             ({"dmap.itemkind", 2}),
-             ({"dmap.itemid", song["id"]}),
-             ({"dmap.itemname", song["title"]||"---"}),
-              ({"dmap.persistentid", song["id"]}),
-              ({"dmap.mediakind", 1}),
-              ({"daap.songartist", song["artist"]||""}),
-              ({"daap.songalbum", song["album"]||""}),
-              ({"daap.songtracknumber", (int)song["track"]||0}),
-              ({"daap.songtrackcount", (int)song["trackcount"]||0}),
-              ({"daap.songgenre", song["genre"]||"Unknown"}),
-              ({"daap.songyear", ((int)song["year"]) || 0}),
-              ({"daap.songtime", ((int)song["length"] || 0)}),
-              ({"daap.songsize", ((int)song["size"] || 0)}),
-              ({"daap.songdatemodified", ((int)song["modified"] || 0)}),
-              ({"daap.songformat", song["format"]}),
-              ({"daap.songdatakind", 0})
-           })
-       });
+     list[i] = ({song->encoded});
   }
   
   //werror("list: %O\n", list);

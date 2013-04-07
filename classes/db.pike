@@ -277,6 +277,27 @@ void write_entry_to_db(object coll, mapping entry)
     max = res[0]->id + 1;
   else max = 1;
   entry->id = max;
+  
+  entry->encoded = app->daap->encode_dmap(({"dmap.listingitem", 
+         ({
+           ({"dmap.itemkind", 2}),
+           ({"dmap.itemid", entry["id"]}),
+           ({"dmap.itemname", entry["title"]||"---"}),
+            ({"dmap.persistentid", entry["id"]}),
+            ({"dmap.mediakind", 1}),
+            ({"daap.songartist", entry["artist"]||""}),
+            ({"daap.songalbum", entry["album"]||""}),
+            ({"daap.songtracknumber", (int)entry["track"]||0}),
+            ({"daap.songtrackcount", (int)entry["trackcount"]||0}),
+            ({"daap.songgenre", entry["genre"]||"Unknown"}),
+            ({"daap.songyear", ((int)entry["year"]) || 0}),
+            ({"daap.songtime", ((int)entry["length"] || 0)}),
+            ({"daap.songsize", ((int)entry["size"] || 0)}),
+            ({"daap.songdatemodified", ((int)entry["modified"] || 0)}),
+            ({"daap.songformat", entry["format"]}),
+            ({"daap.songdatakind", 0})
+         })
+     }));
   coll->save(entry);
 }
 
