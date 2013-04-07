@@ -202,7 +202,7 @@ void process_change_queue()
        checks = has_entry(songc, checks);
        foreach(checks;; ent)
        {
-         werror("adding %s (" + ent->path + ")\n", ent->title);
+         log->debug("adding %s (" + ent->path + ")\n", ent->title);
          // ent->id = ++id;
          if(!ent->title) ent->title = basename(ent->path);
          ent->format = lower_case((ent->path/".")[-1] || "mp3");
