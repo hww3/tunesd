@@ -202,9 +202,9 @@ void process_change_queue()
        checks = has_entry(songc, checks);
        foreach(checks;; ent)
        {
-         log->debug("adding %s (" + ent->path + ")\n", ent->title);
-         // ent->id = ++id;
          if(!ent->title) ent->title = basename(ent->path);
+         log->debug("adding %s (" + ent->path + ")\n", (string)ent->title);
+         // ent->id = ++id;
          ent->format = lower_case((ent->path/".")[-1] || "mp3");
        //  ent->hash = String.string2hex(Crypto.MD5()->hash(Stdio.read_file(ent->path)));
        //  songs[ent->id] = ent;
