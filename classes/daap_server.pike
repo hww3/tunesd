@@ -86,16 +86,19 @@ array|mapping handle_sub_request(object request)
       sscanf(song, "%d.%s", songid, song);
       return stream_audio(request, dbid, songid);
     }
+    // playlist items
     else if(sscanf(request->not_query, "/databases/%s/containers/%s/items", dbid, plid) == 2)
     {
       if(request->not_query != "/server-info" && !request->misc->auth) return auth_required("tunesd");
       return create_container_items(request, dbid, plid);
     }
+    // songs
     else if(sscanf(request->not_query, "/databases/%s/items", dbid) == 1)
     {
       if(request->not_query != "/server-info" && !request->misc->auth) return auth_required("tunesd");
       return create_items(request, dbid);
     }
+    // playlist items
     else if(sscanf(request->not_query, "/databases/%s/containers", dbid) == 1)
     {
       if(request->not_query != "/server-info" && !request->misc->auth) return auth_required("tunesd");
@@ -160,10 +163,12 @@ mapping create_response(array|mapping data, int code)
 //! 
 array create_items(object id, string dbid)
 {
+  int has_removals = app->db->has_removed_in_revision((int)(id->variables["revision-number"]))?1:0;
+
   array x = 
        ({
           ({"dmap.status", 200}),
-          ({"dmap.updatetype", app->db->has_removed_in_revision((int)(id->variables["revision-number"]))?1:0}),
+          ({"dmap.updatetype", has_removals}),
           ({"dmap.specifiedtotalcount", get_song_count()}),
           ({"dmap.returnedcount", get_song_count()}),
           ({"dmap.listing", 
@@ -172,11 +177,12 @@ array create_items(object id, string dbid)
   //        ({"dmap.deletedidlisting", ({  ({"dmap.itemid", id) }) });
        });
   
-  if(app->db->has_removed_in_revision((int)(id->variables["revision-number"])))
+  if(has_removals)
   {
     log->info("have removed items...\n");
     x +=({({"dmap.deletedidlisting",  generate_deleted_ids((int)id->variables["revision-number"]) }) });
   }
+werror("song count: %O\n", get_song_count());
   
   return 
   ({ "daap.databasesongs",
@@ -394,7 +400,7 @@ mapping get_playlist(string dbid, string plid)
 array generate_song_list(object id)
 {
   
-//  werror("looking for %O\n", id->variables->meta/",");
+  werror("looking for %O, %O, %O\n", id->variables->meta/",", id->variables["revision-number"], id->variables->delta);
 
   if(id->variables->type != "music")
     return 0; // will probably throw an error as a result.
@@ -406,14 +412,50 @@ array generate_song_list(object id)
   else
     songs = app->db->get_songs();
     
-  array list = allocate(sizeof(songs));
-  foreach(songs;int i; mapping song)
+  array list = songs->encoded;
+
+/*
+  foreach(songs; int q; mapping m)
   {
-     list[i] = ({song->encoded});
+    if(lower_case(m->title) == "stairway to the stars")
+    {
+      werror("%d: %O\n", q, m);
+    }
   }
-  
-  //werror("list: %O\n", list);
+
+  array list = allocate(sizeof(songs));
+  foreach(songs;int i; mapping entry)
+  {
+	list[i] = encode_song(entry);
+  }
+*/
+//  werror("list: %O, %O\n", list[1086], list[1087]);
   return list;
+}
+
+array encode_song(mapping entry)
+{
+return  ({"dmap.listingitem",
+         ({
+           ({"dmap.itemkind", 2}),
+           ({"dmap.itemid", entry["id"]}),
+           ({"dmap.itemname", entry["title"]||"---"}),
+            ({"dmap.persistentid", entry["id"]}),
+            ({"dmap.mediakind", 1}),
+            ({"daap.songartist", entry["artist"]||""}),
+            ({"daap.songalbum", entry["album"]||""}),
+            ({"daap.songtracknumber", (int)entry["track"]||0}),
+            ({"daap.songtrackcount", (int)entry["trackcount"]||0}),
+            ({"daap.songgenre", entry["genre"]||"Unknown"}),
+            ({"daap.songyear", ((int)entry["year"]) || 0}),
+            ({"daap.songtime", ((int)entry["length"] || 0)}),
+            ({"daap.songsize", ((int)entry["size"] || 0)}),
+            ({"daap.songdatemodified", ((int)entry["modified"] || 0)}),
+            ({"daap.songformat", entry["format"]}),
+            ({"daap.songdatakind", 0})
+         }) });
+
+
 }
 
 array generate_playlist_list()

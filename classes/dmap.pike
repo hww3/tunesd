@@ -330,56 +330,64 @@ aeSP	byte	com.apple.itunes.smart-playlist
 */
 
 //!
-string encode_dmap(array data)
+string encode_dmap(array|string data)
 {
   string tag;
   mixed val = "";
   //werror("Data: %O\n", data);
-  if(sizeof(data) < 2 && !stringp(data[0]))
+  if(arrayp(data) && sizeof(data) < 2 && !stringp(data[0]))
   {
     throw(Error.Generic("non encoded DMAP Field must contain at least 2 entries.\n")); 
   }
-  if(sizeof(data) == 1) return data[0];
-  
-  mapping t = content_tags[data[0]];
-  if(!t)   if(!t) throw(Error.Generic("Unknown DMAP field " + data[0]+ "\n"));
-  
-  int dtype = t["type"];
-  tag = t["code"];
-  switch(dtype)
+
+  if(stringp(data)) return data;  
+
   {
-    case T_BYTE:
-      val = sprintf("%1c", data[1]);
-      break;
-    case T_SHORT:
-      val = sprintf("%2c", data[1]);
-      break;
-    case T_INT:
-      val = sprintf("%4c", data[1]);
-      break;
-    case T_LONG:
-      val = sprintf("%8c", data[1]);
-      break;
-    case T_STRING:
-      val = string_to_utf8(data[1]);
-      break;
-    case T_DATE:
-      val = sprintf("%4c", (intp(data[1])?data[1]:data[1]->unix_timestamp()));
-      break;
-    case T_VERSION:
-      array vs = data[1] /".";
-      if(sizeof(vs) == 2) val = sprintf("%2c%1c%1c", (int)vs[0], (int)vs[1], 0);
-      if(sizeof(vs) == 3) val = sprintf("%2c%1c%1c", (int)vs[0], (int)vs[1], (int)vs[2]);
-      break;
-    case T_LIST:
-       if(!arrayp(data[1]))
-         throw(Error.Generic("Cannot encode non-arrays as lists.\n"));
-       foreach(data[1];; array v)
-         val += encode_dmap(v);
-      break;
-    default:
-      throw(Error.Generic("unknown datatype flag " + dtype +".\n"));
-      break;
+    mapping t = content_tags[data[0]];
+    if(!t)
+    {
+      werror("data: %O\n", data);
+      throw(Error.Generic("Unknown DMAP field " + data[0]+ "\n"));
+    }
+  
+    int dtype = t["type"];
+    tag = t["code"];
+    switch(dtype)
+    {
+      case T_BYTE:
+        val = sprintf("%1c", data[1]);
+        break;
+      case T_SHORT:
+        val = sprintf("%2c", data[1]);
+        break;
+      case T_INT:
+        val = sprintf("%4c", data[1]);
+        break;
+      case T_LONG:
+        val = sprintf("%8c", data[1]);
+        break;
+      case T_STRING:
+        val = string_to_utf8(data[1]);
+        break;
+      case T_DATE:
+        val = sprintf("%4c", (intp(data[1])?data[1]:data[1]->unix_timestamp()));
+        break;
+      case T_VERSION:
+        array vs = data[1] /".";
+        if(sizeof(vs) == 2) val = sprintf("%2c%1c%1c", (int)vs[0], (int)vs[1], 0);
+        if(sizeof(vs) == 3) val = sprintf("%2c%1c%1c", (int)vs[0], (int)vs[1], (int)vs[2]);
+        break;
+      case T_LIST:
+         if(!arrayp(data[1]))
+           throw(Error.Generic("Cannot encode non-arrays as lists.\n"));
+         foreach(data[1];; array v)
+           val += encode_dmap(v);
+        break;
+      default:
+        werror("bad data: %O\n", data);
+        throw(Error.Generic("unknown datatype flag " + dtype +".\n"));
+        break;
+    }
   }
 
   return sprintf("%4s%4c%" + sizeof(val) + "s", tag, sizeof(val), val);

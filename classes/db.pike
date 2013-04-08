@@ -183,27 +183,23 @@ array get_removed_in_revision(int revision)
 void process_change_queue()
 {
   int had_changes = 0;
-  
   if(in_processing_changes) return;
   in_processing_changes = 1;
-  log->info("flushing changes to db");
+  int ch = 0;  
   array checks = ({});
-
-  songc->begin_transaction();
+  log->info("flushing changes to db");
 
   mixed err = catch {
-  while(!change_queue->is_empty())
+  while(!change_queue->is_empty() && ch++ < 100)
   {
      mapping ent = change_queue->read();
      ent->path = relativize_path(ent->path);
      checks += ({ent});
-     if(sizeof(checks) < 10 || change_queue->is_empty())
-     {
        checks = has_entry(songc, checks);
        foreach(checks;; ent)
        {
          if(!ent->title) ent->title = basename(ent->path);
-         log->debug("adding %s (" + ent->path + ")\n", (string)ent->title);
+         log->debug("adding new song %s (" + ent->path + ")", (string)ent->title);
          // ent->id = ++id;
          ent->format = lower_case((ent->path/".")[-1] || "mp3");
        //  ent->hash = String.string2hex(Crypto.MD5()->hash(Stdio.read_file(ent->path)));
@@ -213,8 +209,8 @@ void process_change_queue()
          had_changes++;
        }
       checks = ({});
-    }
   }
+
   while(!remove_queue->is_empty())
   {
     array r = ({});
@@ -222,6 +218,9 @@ void process_change_queue()
     revision_removals[gsc+1] = r;
     had_changes++;
   }
+      
+//  songc->commit_transaction();
+
   if(had_changes)
   {
     did_revise(++gsc);
@@ -231,11 +230,13 @@ void process_change_queue()
   if(err)
   {
     log->exception("Error occurred while processing additions.", err);
-    songc->abort_transaction();
+//    songc->abort_transaction();
   }
-  else
-    songc->commit_transaction();
+  else;
+//    songc->commit_transaction();
   in_processing_changes = 0;
+  if(!change_queue->is_empty())
+    call_out(process_change_queue, 1);
 }
 
 array has_entry(object coll, array(mapping) entry)
