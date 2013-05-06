@@ -412,9 +412,9 @@ array generate_song_list(object id)
   else
     songs = app->db->get_songs();
     
-  array list = songs->encoded;
+//  array list = songs->encoded;
 
-/*
+
   foreach(songs; int q; mapping m)
   {
     if(lower_case(m->title) == "stairway to the stars")
@@ -428,7 +428,7 @@ array generate_song_list(object id)
   {
 	list[i] = encode_song(entry);
   }
-*/
+
 //  werror("list: %O, %O\n", list[1086], list[1087]);
   return list;
 }
@@ -439,19 +439,19 @@ return  ({"dmap.listingitem",
          ({
            ({"dmap.itemkind", 2}),
            ({"dmap.itemid", entry["id"]}),
-           ({"dmap.itemname", entry["title"]||"---"}),
+           ({"dmap.itemname", (entry["title"]||"---")}),
             ({"dmap.persistentid", entry["id"]}),
             ({"dmap.mediakind", 1}),
-            ({"daap.songartist", entry["artist"]||""}),
-            ({"daap.songalbum", entry["album"]||""}),
+            ({"daap.songartist", (entry["artist"]||"---")}),
+            ({"daap.songalbum", (entry["album"]||"---")}),
             ({"daap.songtracknumber", (int)entry["track"]||0}),
             ({"daap.songtrackcount", (int)entry["trackcount"]||0}),
-            ({"daap.songgenre", entry["genre"]||"Unknown"}),
+            ({"daap.songgenre", (entry["genre"]||"Unknown")}),
             ({"daap.songyear", ((int)entry["year"]) || 0}),
             ({"daap.songtime", ((int)entry["length"] || 0)}),
             ({"daap.songsize", ((int)entry["size"] || 0)}),
             ({"daap.songdatemodified", ((int)entry["modified"] || 0)}),
-            ({"daap.songformat", entry["format"]}),
+            ({"daap.songformat", (entry["format"]||"mp3")}),
             ({"daap.songdatakind", 0})
          }) });
 

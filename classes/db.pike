@@ -70,7 +70,7 @@ void start_cleanup()
 
 void start_db(string url)
 {
-  log->info("Starting DB...");
+  log->info("Starting DB (%O)...", url);
   db_url = url;
   db = Database.EJDB.Database(db_url, Database.EJDB.JBOWRITER|Database.EJDB.JBOCREAT);
   
@@ -254,6 +254,7 @@ array has_entry(object coll, array(mapping) entry)
 
   foreach(entry;;mapping e)
   {
+    if(search(e->path, ".AppleDouble")!=-1) continue;
     int hadit = 0;
     foreach(a;; mapping row)
     {
@@ -265,7 +266,7 @@ array has_entry(object coll, array(mapping) entry)
       }
     }
     if(!hadit) res += ({e});
-//    else werror("disqualifying " + e->path + "\n");
+      else werror("disqualifying " + e->path + "\n");
   }
   return res;
 }
@@ -283,19 +284,19 @@ void write_entry_to_db(object coll, mapping entry)
          ({
            ({"dmap.itemkind", 2}),
            ({"dmap.itemid", entry["id"]}),
-           ({"dmap.itemname", entry["title"]||"---"}),
+           ({"dmap.itemname", string_to_utf8(entry["title"]||"---")}),
             ({"dmap.persistentid", entry["id"]}),
             ({"dmap.mediakind", 1}),
-            ({"daap.songartist", entry["artist"]||""}),
-            ({"daap.songalbum", entry["album"]||""}),
+            ({"daap.songartist", string_to_utf8(entry["artist"]||"---")}),
+            ({"daap.songalbum", string_to_utf8(entry["album"]||"---")}),
             ({"daap.songtracknumber", (int)entry["track"]||0}),
             ({"daap.songtrackcount", (int)entry["trackcount"]||0}),
-            ({"daap.songgenre", entry["genre"]||"Unknown"}),
+            ({"daap.songgenre", string_to_utf8(entry["genre"]||"Unknown")}),
             ({"daap.songyear", ((int)entry["year"]) || 0}),
             ({"daap.songtime", ((int)entry["length"] || 0)}),
             ({"daap.songsize", ((int)entry["size"] || 0)}),
             ({"daap.songdatemodified", ((int)entry["modified"] || 0)}),
-            ({"daap.songformat", entry["format"]}),
+            ({"daap.songformat", string_to_utf8(entry["format"])}),
             ({"daap.songdatakind", 0})
          })
      }));

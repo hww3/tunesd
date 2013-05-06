@@ -317,7 +317,11 @@ int get_mp3_length(string filename)
       if(db) 
         db->add(atts);
     }
-   else werror("SCAN ERROR: %s\n", p);
+   else
+   {
+     Stdio.write_file("bad_files", (Stdio.read_file("bad_files")||"") + p + "\n");
+     werror("SCAN ERROR: %s\n", p);
+   }
   }
 }
 
